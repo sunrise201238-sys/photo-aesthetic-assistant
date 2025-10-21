@@ -1,10 +1,3 @@
- (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
-diff --git a/assets/js/main.js b/assets/js/main.js
-new file mode 100644
-index 0000000000000000000000000000000000000000..ae80d6005a387dbf9ebf5cea48100eb9bae2a9f5
---- /dev/null
-+++ b/assets/js/main.js
-@@ -0,0 +1,639 @@
 +const MAX_DIMENSION = 2048;
 +const metricsContainer = document.getElementById('metrics');
 +const originalCanvas = document.getElementById('original-canvas');
@@ -644,6 +637,3 @@ index 0000000000000000000000000000000000000000..ae80d6005a387dbf9ebf5cea48100eb9
 +}
 +
 +init();
- 
-EOF
-)
