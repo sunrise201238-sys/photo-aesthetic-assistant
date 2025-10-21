@@ -47,14 +47,6 @@
 +    "metric_color_balance": "Color balance",
 +    "metric_foreground_background": "Foreground vs. background",
 +    "metric_subject_size": "Subject size",
-+    "metric_shadow_clipping": "Shadow clipping",
-+    "metric_highlight_clipping": "Highlight clipping",
-+    "metric_midtone_balance": "Midtone balance",
-+    "metric_color_cast_strength": "Color cast",
-+    "metric_color_cast_warm": "Warm",
-+    "metric_color_cast_cool": "Cool",
-+    "metric_leading_lines": "Leading lines",
-+    "metric_texture": "Texture energy",
 +    "metric_download_name": "improved-photo",
 +    "metric_feedback": "Suggestions",
 +    "analysis_summary_default": "Upload a photo to see composition notes tailored to your scene.",
@@ -63,8 +55,6 @@
 +    "summary_subject_off_center": "<strong>Subject:</strong> Off-centre — cropping will guide the eye to a stronger point.",
 +    "summary_horizon_level": "<strong>Horizon:</strong> Already level and steady.",
 +    "summary_horizon_tilted": "<strong>Horizon:</strong> Tilted by {{angle}} — auto rotation applied.",
-+    "summary_shadow_clipped": "<strong>Light:</strong> Shadows were crushed — lifted to recover detail.",
-+    "summary_highlight_clipped": "<strong>Light:</strong> Highlights clipped; toned down to protect detail.",
 +    "summary_exposure_dark": "<strong>Light:</strong> Slightly underexposed; midtones lifted in the suggestion.",
 +    "summary_exposure_bright": "<strong>Light:</strong> Highlights are bright; toned down for balance.",
 +    "summary_exposure_balanced": "<strong>Light:</strong> Balanced exposure with healthy midtones.",
@@ -72,10 +62,6 @@
 +    "summary_balance_background": "<strong>Depth:</strong> Background detail is strong; foreground contrast improved.",
 +    "summary_balance_even": "<strong>Depth:</strong> Foreground and background feel evenly weighted.",
 +    "summary_sharpness_soft": "<strong>Texture:</strong> Edges read soft — stabilise capture for extra crispness.",
-+    "summary_color_warm": "<strong>Colour:</strong> Warm cast detected; neutralised for natural tones.",
-+    "summary_color_cool": "<strong>Colour:</strong> Cool tint spotted; warmed for lifelike skin and skies.",
-+    "summary_color_balanced": "<strong>Colour:</strong> Palette remains balanced after subtle toning.",
-+    "summary_leading_lines": "<strong>Flow:</strong> Leading lines draw the eye along a {{angle}} direction.",
 +    "tip_subject_title": "Find the subject",
 +    "tip_subject_text": "The assistant highlights the strongest contour to estimate your main subject position.",
 +    "tip_horizon_title": "Balance the horizon",
@@ -92,14 +78,6 @@
 +    "feedback_saturation": "Boost saturation slightly for richer color.",
 +    "feedback_sharpness": "Try increasing focus or reducing camera shake.",
 +    "feedback_balance": "Balance foreground and background elements for clarity.",
-+    "feedback_highlights": "Recover highlights to protect bright detail.",
-+    "feedback_shadows": "Lift shadow detail to avoid crushed blacks.",
-+    "feedback_local_contrast": "Enhance micro-contrast so textures feel more defined.",
-+    "feedback_vibrance": "Add vibrance for livelier hues without oversaturating.",
-+    "feedback_color_warm": "Cool down the warm colour cast for neutral tones.",
-+    "feedback_color_cool": "Warm up the cool colour shift to keep tones natural.",
-+    "feedback_leading_lines": "Strengthen leading lines or perspective cues to guide the eye.",
-+    "feedback_vignette": "Add a gentle vignette to spotlight the subject.",
 +    "feedback_good": "Great balance! Only minor refinements suggested."
 +  },
 +  'zh-TW': {
@@ -130,14 +108,6 @@
 +    "metric_color_balance": "色彩平衡",
 +    "metric_foreground_background": "前景 / 背景比例",
 +    "metric_subject_size": "主體比例",
-+    "metric_shadow_clipping": "陰影裁切",
-+    "metric_highlight_clipping": "高光裁切",
-+    "metric_midtone_balance": "中間調平衡",
-+    "metric_color_cast_strength": "色偏",
-+    "metric_color_cast_warm": "偏暖",
-+    "metric_color_cast_cool": "偏冷",
-+    "metric_leading_lines": "引導線",
-+    "metric_texture": "紋理能量",
 +    "metric_download_name": "improved-photo",
 +    "metric_feedback": "建議",
 +    "analysis_summary_default": "上傳照片即可看到針對場景量身打造的構圖重點。",
@@ -146,8 +116,6 @@
 +    "summary_subject_off_center": "<strong>主體：</strong> 稍微偏離三分線，裁切後可更聚焦。",
 +    "summary_horizon_level": "<strong>地平線：</strong> 已經水平穩定。",
 +    "summary_horizon_tilted": "<strong>地平線：</strong> 傾斜 {{angle}}，已自動校正。",
-+    "summary_shadow_clipped": "<strong>光線：</strong> 陰影過暗，優化版本已拉回細節。",
-+    "summary_highlight_clipped": "<strong>光線：</strong> 高光爆掉，已壓低保留紋理。",
 +    "summary_exposure_dark": "<strong>光線：</strong> 稍微偏暗，優化版本提升了中間調。",
 +    "summary_exposure_bright": "<strong>光線：</strong> 高光較亮，已適度壓低。",
 +    "summary_exposure_balanced": "<strong>光線：</strong> 曝光均衡，中間調健康。",
@@ -155,10 +123,6 @@
 +    "summary_balance_background": "<strong>景深：</strong> 背景細節強烈，已提升前景對比。",
 +    "summary_balance_even": "<strong>景深：</strong> 前景與背景比例平衡。",
 +    "summary_sharpness_soft": "<strong>細節：</strong> 邊緣略軟，可嘗試穩定拍攝以提高銳利度。",
-+    "summary_color_warm": "<strong>色彩：</strong> 偵測到暖色色偏，已稍微冷卻讓色調自然。",
-+    "summary_color_cool": "<strong>色彩：</strong> 偵測到偏冷色調，已加暖讓膚色與天空更自然。",
-+    "summary_color_balanced": "<strong>色彩：</strong> 維持中性平衡並微調色調。",
-+    "summary_leading_lines": "<strong>視線：</strong> 引導線形成 {{angle}} 方向的動勢。",
 +    "tip_subject_title": "鎖定主體",
 +    "tip_subject_text": "透過強烈輪廓估計最有力的主體位置。",
 +    "tip_horizon_title": "維持水平",
@@ -175,14 +139,6 @@
 +    "feedback_saturation": "些微提升飽和度讓色彩更鮮明。",
 +    "feedback_sharpness": "拍攝時保持穩定以獲得更銳利的影像。",
 +    "feedback_balance": "調整前景與背景比例讓構圖更清晰。",
-+    "feedback_highlights": "回收高光避免亮部失真。",
-+    "feedback_shadows": "提亮暗部保留陰影細節。",
-+    "feedback_local_contrast": "加強微對比讓紋理更立體。",
-+    "feedback_vibrance": "增加活力飽和讓色彩更生動。",
-+    "feedback_color_warm": "稍微降低暖色色偏保持自然色調。",
-+    "feedback_color_cool": "加入暖色減少偏冷色調。",
-+    "feedback_leading_lines": "強化引導線或透視感來帶動視線。",
-+    "feedback_vignette": "加上柔和暗角以聚焦主體。",
 +    "feedback_good": "整體表現優異，只需細部微調。"
 +  }
 +};
@@ -203,10 +159,6 @@
 +  score: value => value.toFixed(2),
 +  numeric: value => value.toFixed(1)
 +};
-+
-+function clamp(value, min = 0, max = 255) {
-+  return Math.min(max, Math.max(min, value));
-+}
 +
 +function cloneFallback() {
 +  return JSON.parse(JSON.stringify(fallbackDictionaries));
@@ -253,13 +205,9 @@
 +  const w = canvas.width;
 +  const h = canvas.height;
 +  ctx.save();
-+  const scale = Math.min(w, h);
-+  const guideWidth = Math.max(2, scale * 0.005);
-+  ctx.lineWidth = guideWidth;
-+  ctx.strokeStyle = 'rgba(91, 192, 255, 0.85)';
-+  ctx.shadowColor = 'rgba(15, 23, 42, 0.85)';
-+  ctx.shadowBlur = guideWidth * 1.6;
-+  ctx.setLineDash([guideWidth * 3, guideWidth * 1.5]);
++  ctx.lineWidth = 1.1;
++  ctx.strokeStyle = 'rgba(91, 192, 255, 0.5)';
++  ctx.setLineDash([6, 6]);
 +  for (let i = 1; i <= 2; i++) {
 +    const x = (w * i) / 3;
 +    ctx.beginPath();
@@ -271,25 +219,13 @@
 +    ctx.moveTo(0, y);
 +    ctx.lineTo(w, y);
 +    ctx.stroke();
-+    const markerRadius = Math.max(4, scale * 0.03);
-+    ctx.beginPath();
-+    ctx.fillStyle = 'rgba(14, 165, 233, 0.18)';
-+    ctx.strokeStyle = 'rgba(191, 219, 254, 0.9)';
-+    ctx.lineWidth = guideWidth * 0.9;
-+    ctx.arc(x, y, markerRadius, 0, Math.PI * 2);
-+    ctx.fill();
-+    ctx.stroke();
-+    ctx.strokeStyle = 'rgba(91, 192, 255, 0.85)';
-+    ctx.lineWidth = guideWidth;
 +  }
 +  ctx.setLineDash([]);
-+  ctx.shadowBlur = guideWidth;
 +  if (includeAnnotations && metrics && metrics.subjectRect) {
 +    const scaleX = w / metrics.imageSize.width;
 +    const scaleY = h / metrics.imageSize.height;
 +    ctx.strokeStyle = 'rgba(244, 114, 182, 0.75)';
-+    ctx.lineWidth = Math.max(1.5, guideWidth * 0.9);
-+    ctx.shadowBlur = guideWidth * 1.2;
++    ctx.lineWidth = 1.4;
 +    ctx.strokeRect(
 +      metrics.subjectRect.x * scaleX,
 +      metrics.subjectRect.y * scaleY,
@@ -300,9 +236,8 @@
 +  if (includeAnnotations && metrics && metrics.horizonLine) {
 +    const scaleX = w / metrics.imageSize.width;
 +    const scaleY = h / metrics.imageSize.height;
-+    ctx.strokeStyle = 'rgba(45, 212, 191, 0.9)';
-+    ctx.lineWidth = Math.max(2, guideWidth * 1.1);
-+    ctx.shadowBlur = guideWidth * 1.8;
++    ctx.strokeStyle = 'rgba(94, 234, 212, 0.75)';
++    ctx.lineWidth = 1.2;
 +    ctx.beginPath();
 +    ctx.moveTo(metrics.horizonLine[0].x * scaleX, metrics.horizonLine[0].y * scaleY);
 +    ctx.lineTo(metrics.horizonLine[1].x * scaleX, metrics.horizonLine[1].y * scaleY);
@@ -426,8 +361,6 @@
 +function renderMetrics(metrics) {
 +  const dict = dictionaries[currentLang] || {};
 +  metricsContainer.innerHTML = '';
-+  const castDirection = metrics.colorCast.bias >= 0 ? (dict['metric_color_cast_warm'] || 'Warm') : (dict['metric_color_cast_cool'] || 'Cool');
-+  const castValue = `${castDirection} ${formatters.percent(Math.min(1, Math.abs(metrics.colorCast.strength)))}`;
 +  const entries = [
 +    ['metric_main_subject', `${formatters.percent(Math.max(0, 0.5 - Math.abs(metrics.subjectOffset.x)))} / ${formatters.percent(Math.max(0, 0.5 - Math.abs(metrics.subjectOffset.y)))}`],
 +    ['metric_horizon', formatters.degrees(metrics.horizonAngle)],
@@ -438,13 +371,7 @@
 +    ['metric_saturation', formatters.numeric(metrics.saturation)],
 +    ['metric_color_balance', `${metrics.colorBalance.r.toFixed(0)} / ${metrics.colorBalance.g.toFixed(0)} / ${metrics.colorBalance.b.toFixed(0)}`],
 +    ['metric_foreground_background', formatters.score(metrics.foregroundBackground)],
-+    ['metric_subject_size', formatters.percent(metrics.subjectSize)],
-+    ['metric_shadow_clipping', formatters.percent(metrics.shadowClipping)],
-+    ['metric_highlight_clipping', formatters.percent(metrics.highlightClipping)],
-+    ['metric_midtone_balance', formatters.percent(metrics.midtoneBalance)],
-+    ['metric_color_cast_strength', castValue],
-+    ['metric_leading_lines', `${formatters.degrees(metrics.leadingLines.angle)} / ${formatters.percent(metrics.leadingLines.strength)}`],
-+    ['metric_texture', formatters.percent(metrics.textureStrength)]
++    ['metric_subject_size', formatters.percent(metrics.subjectSize)]
 +  ];
 +
 +  for (const [labelKey, value] of entries) {
@@ -493,11 +420,7 @@
 +    segments.push(template.replace('{{angle}}', formatters.degrees(Math.abs(metrics.horizonAngle))));
 +  }
 +
-+  if (metrics.shadowClipping > 0.04) {
-+    segments.push(dict['summary_shadow_clipped']);
-+  } else if (metrics.highlightClipping > 0.04) {
-+    segments.push(dict['summary_highlight_clipped']);
-+  } else if (metrics.exposure < 110) {
++  if (metrics.exposure < 110) {
 +    segments.push(dict['summary_exposure_dark']);
 +  } else if (metrics.exposure > 150) {
 +    segments.push(dict['summary_exposure_bright']);
@@ -515,18 +438,6 @@
 +
 +  if (metrics.sharpnessVariance < 120) {
 +    segments.push(dict['summary_sharpness_soft']);
-+  }
-+
-+  if (metrics.colorCast.strength > 0.08) {
-+    const colorKey = metrics.colorCast.bias >= 0 ? 'summary_color_warm' : 'summary_color_cool';
-+    segments.push(dict[colorKey]);
-+  } else {
-+    segments.push(dict['summary_color_balanced']);
-+  }
-+
-+  if (metrics.leadingLines.strength > 0.35) {
-+    const template = dict['summary_leading_lines'] || '';
-+    segments.push(template.replace('{{angle}}', formatters.degrees(Math.abs(metrics.leadingLines.angle))));
 +  }
 +
 +  analysisSummary.innerHTML = segments.filter(Boolean).join(' ');
@@ -744,10 +655,6 @@
 +  const gradient = new Float32Array(pixelCount);
 +
 +  const colorBalance = { r: 0, g: 0, b: 0 };
-+  let shadowClipped = 0;
-+  let highlightClipped = 0;
-+  let midtoneSum = 0;
-+  let midtoneCount = 0;
 +
 +  for (let i = 0; i < pixelCount; i++) {
 +    const idx = i * 4;
@@ -757,24 +664,12 @@
 +    colorBalance.r += r;
 +    colorBalance.g += g;
 +    colorBalance.b += b;
-+    const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-+    grayscale[i] = luminance;
-+    if (luminance < 12) shadowClipped++;
-+    if (luminance > 243) highlightClipped++;
-+    if (luminance > 64 && luminance < 200) {
-+      midtoneSum += luminance;
-+      midtoneCount++;
-+    }
++    grayscale[i] = 0.2126 * r + 0.7152 * g + 0.0722 * b;
 +  }
 +
 +  colorBalance.r /= pixelCount;
 +  colorBalance.g /= pixelCount;
 +  colorBalance.b /= pixelCount;
-+
-+  let gradientSum = 0;
-+  let orientationSumX = 0;
-+  let orientationSumY = 0;
-+  let orientationCount = 0;
 +
 +  for (let y = 1; y < height - 1; y++) {
 +    for (let x = 1; x < width - 1; x++) {
@@ -788,7 +683,6 @@
 +      gradX[idx] = gx;
 +      gradY[idx] = gy;
 +      gradient[idx] = Math.hypot(gx, gy);
-+      gradientSum += gradient[idx];
 +    }
 +  }
 +
@@ -827,10 +721,6 @@
 +        const normalized = ((angle + 180) % 180) - 90;
 +        horizonAngle += normalized * magnitude;
 +        horizonWeight += magnitude;
-+        const orientation = Math.atan2(gy, gx);
-+        orientationSumX += Math.cos(2 * orientation) * magnitude;
-+        orientationSumY += Math.sin(2 * orientation) * magnitude;
-+        orientationCount += magnitude;
 +      }
 +    }
 +  }
@@ -850,30 +740,8 @@
 +    saturation: 0,
 +    colorBalance,
 +    foregroundBackground: 0,
-+    shadowClipping: shadowClipped / pixelCount,
-+    highlightClipping: highlightClipped / pixelCount,
-+    midtoneBalance: midtoneCount ? midtoneSum / (midtoneCount * 255) : stats.mean / 255,
-+    colorCast: { bias: 0, warmBias: 0, coolBias: 0, strength: 0 },
-+    leadingLines: { angle: 0, strength: 0 },
-+    textureStrength: gradientSum / Math.max(1, pixelCount * 255),
 +    feedback: []
 +  };
-+
-+  const avgColor = (colorBalance.r + colorBalance.g + colorBalance.b) / 3;
-+  const warmBias = colorBalance.r - avgColor;
-+  const coolBias = colorBalance.b - avgColor;
-+  metrics.colorCast = {
-+    bias: warmBias - coolBias,
-+    warmBias,
-+    coolBias,
-+    strength: Math.max(Math.abs(warmBias), Math.abs(coolBias)) / 255
-+  };
-+
-+  if (orientationCount > 0) {
-+    const strength = Math.hypot(orientationSumX, orientationSumY) / orientationCount;
-+    const angle = (Math.atan2(orientationSumY, orientationSumX) / 2) * (180 / Math.PI);
-+    metrics.leadingLines = { angle, strength };
-+  }
 +
 +  if (strongCount > 50) {
 +    const widthRect = maxX - minX;
@@ -953,41 +821,22 @@
 +  if (metrics.subjectRect && metrics.ruleOfThirdsScore < 0.6) {
 +    feedback.add('feedback_crop');
 +  }
-+  if (metrics.exposure < 110 && metrics.shadowClipping < 0.03) {
++  if (metrics.exposure < 105) {
 +    feedback.add('feedback_exposure');
++  } else if (metrics.exposure > 160) {
++    feedback.add('feedback_balance');
 +  }
-+  if (metrics.highlightClipping > 0.035 || metrics.exposure > 165) {
-+    feedback.add('feedback_highlights');
-+  }
-+  if (metrics.shadowClipping > 0.035) {
-+    feedback.add('feedback_shadows');
-+  }
-+  if (metrics.contrast < 45 || metrics.textureStrength < 0.08) {
++  if (metrics.contrast < 45) {
 +    feedback.add('feedback_contrast');
-+    feedback.add('feedback_local_contrast');
 +  }
 +  if (metrics.saturation < 50) {
 +    feedback.add('feedback_saturation');
-+    feedback.add('feedback_vibrance');
 +  }
 +  if (metrics.sharpnessVariance < 120) {
 +    feedback.add('feedback_sharpness');
 +  }
 +  if (metrics.foregroundBackground < 0.8 || metrics.foregroundBackground > 1.2) {
 +    feedback.add('feedback_balance');
-+  }
-+  if (metrics.colorCast.strength > 0.08) {
-+    if (metrics.colorCast.bias >= 0) {
-+      feedback.add('feedback_color_warm');
-+    } else {
-+      feedback.add('feedback_color_cool');
-+    }
-+  }
-+  if (metrics.leadingLines.strength < 0.18 && metrics.subjectRect) {
-+    feedback.add('feedback_leading_lines');
-+  }
-+  if (metrics.subjectSize < 0.14) {
-+    feedback.add('feedback_vignette');
 +  }
 +  if (feedback.size === 0) {
 +    feedback.add('feedback_good');
@@ -1000,284 +849,57 @@
 +function improveImage(baseCanvas, metrics) {
 +  const width = baseCanvas.width;
 +  const height = baseCanvas.height;
-+  const crop = computeCropBox(width, height, metrics);
++
++  const cropWidth = Math.round(width * 0.9);
++  const cropHeight = Math.round(height * 0.9);
++
++  let desiredX = cropWidth / 2;
++  let desiredY = cropHeight / 2;
++  if (metrics.subjectRect) {
++    desiredX = metrics.subjectCenter.x < width / 2 ? cropWidth / 3 : (2 * cropWidth) / 3;
++    desiredY = metrics.subjectCenter.y < height / 2 ? cropHeight / 3 : (2 * cropHeight) / 3;
++  }
++
++  let cropX = Math.round((metrics.subjectCenter.x || width / 2) - desiredX);
++  let cropY = Math.round((metrics.subjectCenter.y || height / 2) - desiredY);
++
++  cropX = Math.max(0, Math.min(width - cropWidth, cropX));
++  cropY = Math.max(0, Math.min(height - cropHeight, cropY));
 +
 +  const cropCanvas = document.createElement('canvas');
-+  cropCanvas.width = crop.width;
-+  cropCanvas.height = crop.height;
++  cropCanvas.width = cropWidth;
++  cropCanvas.height = cropHeight;
 +  const cropCtx = cropCanvas.getContext('2d');
-+  cropCtx.drawImage(baseCanvas, crop.x, crop.y, crop.width, crop.height, 0, 0, crop.width, crop.height);
++  cropCtx.drawImage(baseCanvas, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
 +
 +  const rotation = (-metrics.horizonAngle * Math.PI) / 180;
-+  const rotatedCanvas = rotateCanvas(cropCanvas, rotation);
-+
-+  const cropCenter = { x: crop.width / 2, y: crop.height / 2 };
-+  const focusRelative = {
-+    x: crop.focus.x - cropCenter.x,
-+    y: crop.focus.y - cropCenter.y
-+  };
-+  const rotatedFocus = {
-+    x: rotatedCanvas.width / 2 + focusRelative.x * Math.cos(rotation) - focusRelative.y * Math.sin(rotation),
-+    y: rotatedCanvas.height / 2 + focusRelative.x * Math.sin(rotation) + focusRelative.y * Math.cos(rotation)
-+  };
-+
-+  const perspective = applySubtlePerspective(rotatedCanvas, metrics);
-+  const perspectiveFocus = {
-+    x: perspective.margin + rotatedFocus.x + perspective.skewX * rotatedFocus.y,
-+    y: perspective.margin + rotatedFocus.y + perspective.skewY * rotatedFocus.x
-+  };
-+
-+  const finalCanvas = document.createElement('canvas');
-+  finalCanvas.width = crop.width;
-+  finalCanvas.height = crop.height;
-+  const finalCtx = finalCanvas.getContext('2d');
-+
-+  const offsetX = Math.max(0, (perspective.canvas.width - crop.width) / 2);
-+  const offsetY = Math.max(0, (perspective.canvas.height - crop.height) / 2);
-+  finalCtx.drawImage(
-+    perspective.canvas,
-+    offsetX,
-+    offsetY,
-+    crop.width,
-+    crop.height,
-+    0,
-+    0,
-+    crop.width,
-+    crop.height
-+  );
-+
-+  const focusPoint = {
-+    x: Math.min(crop.width, Math.max(0, perspectiveFocus.x - offsetX)),
-+    y: Math.min(crop.height, Math.max(0, perspectiveFocus.y - offsetY))
-+  };
-+
-+  applyToneAndColorAdjustments(finalCanvas, metrics, focusPoint);
-+  const clarityAmount = metrics.textureStrength < 0.08 ? 0.28 : metrics.textureStrength < 0.12 ? 0.18 : 0.1;
-+  applyLocalContrast(finalCanvas, clarityAmount);
-+  const vignetteStrength = metrics.subjectSize < 0.12 ? 0.2 : metrics.subjectSize < 0.25 ? 0.12 : 0.08;
-+  applyVignette(finalCanvas, vignetteStrength, focusPoint);
-+
-+  return finalCanvas;
-+}
-+
-+function computeCropBox(width, height, metrics) {
-+  const aspectPreference = width >= height ? 3 / 2 : 4 / 5;
-+  const subjectMargin = metrics.subjectRect ? Math.max(0.08, 0.24 - metrics.subjectSize) : 0.14;
-+  let cropWidth = Math.round(width * (1 - subjectMargin));
-+  let cropHeight = Math.round(height * (1 - subjectMargin));
-+
-+  if (cropWidth / cropHeight > aspectPreference) {
-+    cropWidth = Math.round(cropHeight * aspectPreference);
-+  } else {
-+    cropHeight = Math.round(cropWidth / aspectPreference);
-+  }
-+
-+  cropWidth = Math.min(cropWidth, width);
-+  cropHeight = Math.min(cropHeight, height);
-+
-+  const targetX = metrics.subjectRect ? metrics.subjectCenter.x : width / 2;
-+  const targetY = metrics.subjectRect ? metrics.subjectCenter.y : height / 2;
-+  const easedX = targetX + metrics.subjectOffset.x * width * 0.1;
-+  const easedY = targetY + metrics.subjectOffset.y * height * 0.1;
-+
-+  const centerX = Math.max(cropWidth / 2, Math.min(width - cropWidth / 2, easedX));
-+  const centerY = Math.max(cropHeight / 2, Math.min(height - cropHeight / 2, easedY));
-+
-+  const x = Math.round(centerX - cropWidth / 2);
-+  const y = Math.round(centerY - cropHeight / 2);
-+
-+  return {
-+    x,
-+    y,
-+    width: cropWidth,
-+    height: cropHeight,
-+    focus: {
-+      x: metrics.subjectRect ? metrics.subjectCenter.x - x : cropWidth / 2,
-+      y: metrics.subjectRect ? metrics.subjectCenter.y - y : cropHeight / 2
-+    }
-+  };
-+}
-+
-+function rotateCanvas(sourceCanvas, rotation) {
-+  if (Math.abs(rotation) < 0.002) {
-+    const clone = document.createElement('canvas');
-+    clone.width = sourceCanvas.width;
-+    clone.height = sourceCanvas.height;
-+    clone.getContext('2d').drawImage(sourceCanvas, 0, 0);
-+    return clone;
-+  }
-+  const width = sourceCanvas.width;
-+  const height = sourceCanvas.height;
 +  const cos = Math.cos(rotation);
 +  const sin = Math.sin(rotation);
-+  const rotatedWidth = Math.round(Math.abs(cos) * width + Math.abs(sin) * height);
-+  const rotatedHeight = Math.round(Math.abs(sin) * width + Math.abs(cos) * height);
++  const rotatedWidth = Math.round(Math.abs(cos) * cropWidth + Math.abs(sin) * cropHeight);
++  const rotatedHeight = Math.round(Math.abs(sin) * cropWidth + Math.abs(cos) * cropHeight);
 +  const rotatedCanvas = document.createElement('canvas');
 +  rotatedCanvas.width = rotatedWidth;
 +  rotatedCanvas.height = rotatedHeight;
-+  const ctx = rotatedCanvas.getContext('2d');
-+  ctx.translate(rotatedWidth / 2, rotatedHeight / 2);
-+  ctx.rotate(rotation);
-+  ctx.drawImage(sourceCanvas, -width / 2, -height / 2);
-+  return rotatedCanvas;
-+}
++  const rotatedCtx = rotatedCanvas.getContext('2d');
++  rotatedCtx.translate(rotatedWidth / 2, rotatedHeight / 2);
++  rotatedCtx.rotate(rotation);
++  rotatedCtx.drawImage(cropCanvas, -cropWidth / 2, -cropHeight / 2);
 +
-+function applySubtlePerspective(canvas, metrics) {
-+  const width = canvas.width;
-+  const height = canvas.height;
-+  const margin = Math.round(Math.max(width, height) * 0.05);
-+  const skewX = clamp(metrics.subjectOffset.x * 0.08 + metrics.horizonAngle * 0.002, -0.18, 0.18);
-+  const skewY = clamp(metrics.subjectOffset.y * 0.06, -0.18, 0.18);
-+  const warpedCanvas = document.createElement('canvas');
-+  warpedCanvas.width = width + margin * 2;
-+  warpedCanvas.height = height + margin * 2;
-+  const ctx = warpedCanvas.getContext('2d');
-+  ctx.translate(margin, margin);
-+  ctx.transform(1, skewY, skewX, 1, 0, 0);
-+  ctx.drawImage(canvas, 0, 0);
-+  return { canvas: warpedCanvas, skewX, skewY, margin };
-+}
++  const finalCanvas = document.createElement('canvas');
++  finalCanvas.width = cropWidth;
++  finalCanvas.height = cropHeight;
++  const finalCtx = finalCanvas.getContext('2d');
 +
-+function toneCurve(value, options = {}) {
-+  const { shadowBoost = 0, highlightPull = 0, midtoneBias = 0 } = options;
-+  let v = value;
-+  if (shadowBoost > 0 && v < 0.45) {
-+    const influence = (0.45 - v) / 0.45;
-+    v += influence * shadowBoost * 0.6;
-+  }
-+  if (highlightPull > 0 && v > 0.55) {
-+    const influence = (v - 0.55) / 0.45;
-+    v -= influence * highlightPull * 0.6;
-+  }
-+  v += midtoneBias;
-+  return Math.min(1, Math.max(0, v));
-+}
++  const brightness = metrics.exposure < 110 ? 1.1 : metrics.exposure > 160 ? 0.95 : 1;
++  const contrast = metrics.contrast < 45 ? 1.05 : metrics.contrast > 80 ? 0.95 : 1;
++  const saturation = metrics.saturation < 50 ? 1.12 : metrics.saturation > 160 ? 0.92 : 1;
++  finalCtx.filter = `brightness(${brightness}) contrast(${contrast}) saturate(${saturation})`;
 +
-+function applyToneAndColorAdjustments(canvas, metrics, focusPoint) {
-+  const ctx = canvas.getContext('2d');
-+  const { width, height } = canvas;
-+  const imageData = ctx.getImageData(0, 0, width, height);
-+  const { data } = imageData;
-+  const focus = focusPoint || { x: width / 2, y: height / 2 };
-+  const focusRadius = Math.min(
-+    Math.max(width, height),
-+    Math.min(width, height) * (metrics.subjectSize > 0 ? Math.min(0.65, Math.max(0.32, Math.sqrt(metrics.subjectSize) * 1.4)) : 0.48)
-+  );
-+  const focusLift = metrics.subjectSize < 0.16 ? 0.18 : 0.1;
-+  const shadowBoost = metrics.shadowClipping > 0.035 ? 0.28 : metrics.shadowClipping > 0.02 ? 0.18 : 0.1;
-+  const highlightPull = metrics.highlightClipping > 0.035 ? 0.26 : metrics.highlightClipping > 0.02 ? 0.16 : 0.08;
-+  const midtoneBias = metrics.midtoneBalance < 0.45 ? 0.08 : metrics.midtoneBalance > 0.6 ? -0.06 : 0;
-+  const colorBias = metrics.colorCast.bias;
-+  const castStrength = Math.min(0.35, Math.abs(colorBias) / 255);
-+  const warmShift = colorBias >= 0 ? castStrength : 0;
-+  const coolShift = colorBias < 0 ? castStrength : 0;
-+  const vibrance = metrics.saturation < 60 ? 0.22 : metrics.saturation < 90 ? 0.12 : metrics.saturation > 180 ? -0.12 : 0;
-+  const gamma = metrics.exposure < 110 ? 0.95 : metrics.exposure > 165 ? 1.04 : 1;
++  const offsetX = (rotatedWidth - cropWidth) / 2;
++  const offsetY = (rotatedHeight - cropHeight) / 2;
++  finalCtx.drawImage(rotatedCanvas, offsetX, offsetY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
 +
-+  for (let y = 0; y < height; y++) {
-+    for (let x = 0; x < width; x++) {
-+      const idx = (y * width + x) * 4;
-+      let r = data[idx];
-+      let g = data[idx + 1];
-+      let b = data[idx + 2];
-+
-+      const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-+      const tone = luminance / 255;
-+      const mapped = toneCurve(tone, { shadowBoost, highlightPull, midtoneBias });
-+      const toneScale = tone > 0 ? mapped / tone : mapped;
-+      if (toneScale > 0) {
-+        r = clamp(r * toneScale);
-+        g = clamp(g * toneScale);
-+        b = clamp(b * toneScale);
-+      }
-+
-+      const dx = x - focus.x;
-+      const dy = y - focus.y;
-+      const distance = Math.hypot(dx, dy);
-+      const focusInfluence = focusRadius ? Math.max(0, 1 - distance / focusRadius) : 0;
-+      if (focusInfluence > 0) {
-+        const lift = 1 + focusInfluence * focusLift;
-+        r = clamp(r * lift);
-+        g = clamp(g * lift);
-+        b = clamp(b * lift);
-+      }
-+
-+      if (gamma !== 1) {
-+        r = clamp(Math.pow(r / 255, gamma) * 255);
-+        g = clamp(Math.pow(g / 255, gamma) * 255);
-+        b = clamp(Math.pow(b / 255, gamma) * 255);
-+      }
-+
-+      if (warmShift > 0) {
-+        r = clamp(r - warmShift * 45);
-+        b = clamp(b + warmShift * 25);
-+      }
-+      if (coolShift > 0) {
-+        r = clamp(r + coolShift * 25);
-+        b = clamp(b - coolShift * 45);
-+      }
-+
-+      if (vibrance !== 0) {
-+        const avg = (r + g + b) / 3;
-+        const primaryBoost = 1 + vibrance;
-+        const secondaryBoost = 1 + vibrance * 0.85;
-+        r = clamp(avg + (r - avg) * primaryBoost);
-+        g = clamp(avg + (g - avg) * secondaryBoost);
-+        b = clamp(avg + (b - avg) * primaryBoost);
-+      }
-+
-+      data[idx] = r;
-+      data[idx + 1] = g;
-+      data[idx + 2] = b;
-+    }
-+  }
-+
-+  ctx.putImageData(imageData, 0, 0);
-+}
-+
-+function applyLocalContrast(canvas, amount = 0.12) {
-+  if (!amount || amount <= 0) return;
-+  const { width, height } = canvas;
-+  if (!width || !height) return;
-+  const ctx = canvas.getContext('2d');
-+  const original = ctx.getImageData(0, 0, width, height);
-+  const tempCanvas = document.createElement('canvas');
-+  tempCanvas.width = width;
-+  tempCanvas.height = height;
-+  const tempCtx = tempCanvas.getContext('2d');
-+  tempCtx.filter = 'blur(2px)';
-+  tempCtx.drawImage(canvas, 0, 0, width, height);
-+  const blurred = tempCtx.getImageData(0, 0, width, height);
-+  const data = original.data;
-+  const blurData = blurred.data;
-+  for (let i = 0; i < data.length; i += 4) {
-+    data[i] = clamp(data[i] + (data[i] - blurData[i]) * amount);
-+    data[i + 1] = clamp(data[i + 1] + (data[i + 1] - blurData[i + 1]) * amount);
-+    data[i + 2] = clamp(data[i + 2] + (data[i + 2] - blurData[i + 2]) * amount);
-+  }
-+  ctx.putImageData(original, 0, 0);
-+}
-+
-+function applyVignette(canvas, strength = 0.1, focusPoint) {
-+  if (!strength || strength <= 0) return;
-+  const ctx = canvas.getContext('2d');
-+  const { width, height } = canvas;
-+  const imageData = ctx.getImageData(0, 0, width, height);
-+  const { data } = imageData;
-+  const center = focusPoint || { x: width / 2, y: height / 2 };
-+  const maxDistance = Math.hypot(Math.max(center.x, width - center.x), Math.max(center.y, height - center.y));
-+  for (let y = 0; y < height; y++) {
-+    for (let x = 0; x < width; x++) {
-+      const idx = (y * width + x) * 4;
-+      const dist = Math.hypot(x - center.x, y - center.y);
-+      const influence = Math.min(1, dist / maxDistance);
-+      const factor = 1 - strength * Math.pow(influence, 1.4);
-+      data[idx] = clamp(data[idx] * factor);
-+      data[idx + 1] = clamp(data[idx + 1] * factor);
-+      data[idx + 2] = clamp(data[idx + 2] * factor);
-+    }
-+  }
-+  ctx.putImageData(imageData, 0, 0);
++  return finalCanvas;
 +}
 +
 +async function processFile(file) {
