@@ -1,0 +1,42 @@
+ (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
+diff --git a/translations/en-US.json b/translations/en-US.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..cc827d53950ee1ffb06ead14de792fbf4372fa00
+--- /dev/null
++++ b/translations/en-US.json
+@@ -0,0 +1,32 @@
++{
++  "app_title": "Photo Aesthetic Assistant",
++  "app_tagline": "Private, instant composition feedback in your browser.",
++  "drop_instructions": "Drop an image here or click to choose a file.",
++  "select_button": "Select Photo",
++  "original_title": "Original",
++  "improved_title": "Improved Suggestion",
++  "download_button": "Download Improved Image",
++  "toggle_grid": "Show guides",
++  "footer_note": "All processing happens locally in your browser. No uploads. No tracking.",
++  "loading": "Processing photo…",
++  "metric_main_subject": "Main subject position",
++  "metric_horizon": "Horizon angle",
++  "metric_rule_of_thirds": "Rule-of-thirds alignment",
++  "metric_sharpness": "Sharpness variance",
++  "metric_exposure": "Exposure",
++  "metric_contrast": "Contrast",
++  "metric_saturation": "Saturation",
++  "metric_color_balance": "Color balance",
++  "metric_foreground_background": "Foreground vs. background",
++  "metric_subject_size": "Subject size",
++  "metric_download_name": "improved-photo",
++  "metric_feedback": "Suggestions",
++  "feedback_rotation": "Slightly rotate the horizon to level the scene.",
++  "feedback_crop": "Consider cropping so the subject sits on a thirds intersection.",
++  "feedback_exposure": "Brighten the midtones for better balance.",
++  "feedback_contrast": "Increase contrast to emphasize depth.",
++  "feedback_saturation": "Boost saturation slightly for richer color.",
++  "feedback_sharpness": "Try increasing focus or reducing camera shake.",
++  "feedback_balance": "Balance foreground and background elements for clarity.",
++  "feedback_good": "Great balance! Only minor refinements suggested."
++}
+ 
+EOF
+)
