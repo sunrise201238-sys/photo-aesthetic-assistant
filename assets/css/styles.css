@@ -1,0 +1,252 @@
+ (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
+diff --git a/assets/css/styles.css b/assets/css/styles.css
+new file mode 100644
+index 0000000000000000000000000000000000000000..c5bdb0d39925da30e6b438d67aa17dc0748f8d34
+--- /dev/null
++++ b/assets/css/styles.css
+@@ -0,0 +1,242 @@
++:root {
++  color-scheme: light dark;
++  --bg-color: #0f1115;
++  --surface: rgba(255, 255, 255, 0.06);
++  --accent: #51c4f5;
++  --accent-muted: rgba(81, 196, 245, 0.25);
++  --text-primary: #f1f5f9;
++  --text-secondary: #94a3b8;
++  --border: rgba(148, 163, 184, 0.3);
++  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
++}
++
++body {
++  margin: 0;
++  min-height: 100vh;
++  background: radial-gradient(circle at top left, rgba(81, 196, 245, 0.2), transparent 55%),
++    radial-gradient(circle at bottom right, rgba(244, 114, 182, 0.2), transparent 60%),
++    var(--bg-color);
++  color: var(--text-primary);
++  display: flex;
++  flex-direction: column;
++}
++
++.app-header,
++.app-footer {
++  padding: 1.5rem 5vw;
++  display: flex;
++  align-items: center;
++  justify-content: space-between;
++  gap: 1rem;
++  flex-wrap: wrap;
++}
++
++.app-header {
++  border-bottom: 1px solid var(--border);
++  background: rgba(15, 17, 21, 0.7);
++  backdrop-filter: blur(12px);
++}
++
++.app-footer {
++  border-top: 1px solid var(--border);
++  background: rgba(15, 17, 21, 0.6);
++  font-size: 0.9rem;
++}
++
++.branding h1 {
++  margin: 0;
++  font-size: clamp(1.6rem, 3vw, 2.4rem);
++  letter-spacing: 0.02em;
++}
++
++.branding p {
++  margin: 0.2rem 0 0;
++  color: var(--text-secondary);
++}
++
++.lang-toggle button {
++  border: 1px solid var(--border);
++  background: transparent;
++  color: var(--text-secondary);
++  padding: 0.5rem 1rem;
++  border-radius: 999px;
++  cursor: pointer;
++  transition: all 0.2s ease;
++}
++
++.lang-toggle button.active {
++  background: var(--accent-muted);
++  color: var(--text-primary);
++  border-color: var(--accent);
++}
++
++.lang-toggle button:focus-visible {
++  outline: 2px solid var(--accent);
++  outline-offset: 2px;
++}
++
++.app-main {
++  flex: 1;
++  display: grid;
++  grid-template-columns: minmax(280px, 360px) 1fr;
++  gap: 2rem;
++  padding: 2rem 5vw 4rem;
++}
++
++.upload-panel,
++.preview-panel {
++  background: rgba(15, 17, 21, 0.55);
++  border: 1px solid var(--border);
++  border-radius: 20px;
++  padding: 1.5rem;
++  display: flex;
++  flex-direction: column;
++  gap: 1.5rem;
++  box-shadow: 0 25px 50px -12px rgba(15, 17, 21, 0.6);
++}
++
++.drop-zone {
++  border: 2px dashed var(--border);
++  border-radius: 16px;
++  padding: 2rem;
++  text-align: center;
++  cursor: pointer;
++  transition: border-color 0.2s ease, background 0.2s ease;
++  background: rgba(148, 163, 184, 0.05);
++}
++
++.drop-zone.dragover {
++  border-color: var(--accent);
++  background: rgba(81, 196, 245, 0.1);
++}
++
++.drop-zone p {
++  margin-bottom: 1rem;
++  font-size: 1rem;
++  color: var(--text-secondary);
++}
++
++.drop-zone button {
++  background: var(--accent);
++  color: #031523;
++  border: none;
++  padding: 0.7rem 1.5rem;
++  border-radius: 999px;
++  cursor: pointer;
++  font-weight: 600;
++  transition: transform 0.2s ease, box-shadow 0.2s ease;
++}
++
++.drop-zone button:hover {
++  transform: translateY(-1px);
++  box-shadow: 0 10px 20px -15px rgba(81, 196, 245, 0.7);
++}
++
++.metrics {
++  display: grid;
++  gap: 1rem;
++}
++
++.metric {
++  display: flex;
++  justify-content: space-between;
++  padding: 0.75rem 1rem;
++  border-radius: 12px;
++  background: rgba(148, 163, 184, 0.08);
++  border: 1px solid rgba(148, 163, 184, 0.18);
++}
++
++.metric-label {
++  color: var(--text-secondary);
++}
++
++.metric-value {
++  font-weight: 600;
++}
++
++.canvas-stack {
++  display: grid;
++  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
++  gap: 1.5rem;
++}
++
++.canvas-card {
++  background: rgba(15, 17, 21, 0.45);
++  border-radius: 16px;
++  padding: 1rem;
++  border: 1px solid rgba(148, 163, 184, 0.18);
++  display: flex;
++  flex-direction: column;
++  gap: 1rem;
++}
++
++canvas {
++  width: 100%;
++  border-radius: 12px;
++  border: 1px solid rgba(148, 163, 184, 0.2);
++  background: #0d1014;
++}
++
++#download-button {
++  align-self: flex-start;
++  background: var(--accent);
++  color: #031523;
++  border: none;
++  padding: 0.6rem 1.3rem;
++  border-radius: 999px;
++  font-weight: 600;
++  cursor: pointer;
++  transition: opacity 0.2s ease, transform 0.2s ease;
++}
++
++#download-button:disabled {
++  opacity: 0.4;
++  cursor: not-allowed;
++}
++
++.overlay-controls {
++  display: flex;
++  gap: 0.75rem;
++  align-items: center;
++  color: var(--text-secondary);
++}
++
++.loading {
++  position: fixed;
++  inset: 0;
++  background: rgba(9, 11, 17, 0.62);
++  display: flex;
++  flex-direction: column;
++  align-items: center;
++  justify-content: center;
++  gap: 1rem;
++  z-index: 100;
++  font-size: 1.1rem;
++}
++
++.spinner {
++  width: 3rem;
++  height: 3rem;
++  border-radius: 50%;
++  border: 4px solid rgba(148, 163, 184, 0.2);
++  border-top-color: var(--accent);
++  animation: spin 0.9s linear infinite;
++}
++
++@keyframes spin {
++  to {
++    transform: rotate(360deg);
++  }
++}
++
++@media (max-width: 960px) {
++  .app-main {
++    grid-template-columns: 1fr;
++  }
++
++  .app-header,
++  .app-footer {
++    justify-content: center;
++    text-align: center;
++  }
++}
+ 
+EOF
+)
