@@ -1,10 +1,3 @@
- (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
-diff --git a/assets/css/styles.css b/assets/css/styles.css
-new file mode 100644
-index 0000000000000000000000000000000000000000..c5bdb0d39925da30e6b438d67aa17dc0748f8d34
---- /dev/null
-+++ b/assets/css/styles.css
-@@ -0,0 +1,242 @@
 +:root {
 +  color-scheme: light dark;
 +  --bg-color: #0f1115;
@@ -247,6 +240,3 @@ index 0000000000000000000000000000000000000000..c5bdb0d39925da30e6b438d67aa17dc0
 +    text-align: center;
 +  }
 +}
- 
-EOF
-)
