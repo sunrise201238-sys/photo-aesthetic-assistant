@@ -1072,25 +1072,82 @@ function improveImage(baseCanvas, metrics) {
 
   const distortion = Math.max(Math.abs(perspective.skewX), Math.abs(perspective.skewY));
   const rotationInfluence = Math.abs(rotation);
-  const extraScale = 1 + Math.min(0.35, rotationInfluence * 0.55 + distortion * 1.1 + (metrics.subjectSize < 0.18 ? 0.08 : 0.04));
+  const zoomPadding = rotationInfluence * 0.48 + distortion * 0.9 + (metrics.subjectSize < 0.18 ? 0.08 : 0.045);
+  const extraScale = 1 + Math.min(0.32, zoomPadding);
   const availableWidth = perspective.canvas.width;
   const availableHeight = perspective.canvas.height;
-  const widthMargin = Math.max(0, (availableWidth - crop.width) / 2);
-  const heightMargin = Math.max(0, (availableHeight - crop.height) / 2);
-  const guardX = Math.min(
-    availableWidth / 2 - 2,
-    Math.max(12, widthMargin * 0.6 + rotationInfluence * availableWidth * 0.18 + distortion * availableWidth * 0.26)
-  );
-  const guardY = Math.min(
-    availableHeight / 2 - 2,
-    Math.max(12, heightMargin * 0.6 + rotationInfluence * availableHeight * 0.18 + distortion * availableHeight * 0.26)
-  );
-  const maxWidth = Math.max(crop.width, availableWidth - guardX * 2);
-  const maxHeight = Math.max(crop.height, availableHeight - guardY * 2);
-  const sampleWidth = Math.min(maxWidth, crop.width * extraScale);
-  const sampleHeight = Math.min(maxHeight, crop.height * extraScale);
-  const sampleX = (availableWidth - sampleWidth) / 2;
-  const sampleY = (availableHeight - sampleHeight) / 2;
+  const targetAspect = crop.width / crop.height;
+
+  const contentBounds = computeContentBounds(perspective.canvas, 4);
+  let sampleX = 0;
+  let sampleY = 0;
+  let sampleWidth = crop.width * extraScale;
+  let sampleHeight = crop.height * extraScale;
+
+  if (contentBounds) {
+    const insetBaseX = Math.max(10, contentBounds.width * (0.05 + rotationInfluence * 0.1 + distortion * 0.15));
+    const insetBaseY = Math.max(10, contentBounds.height * (0.05 + rotationInfluence * 0.1 + distortion * 0.15));
+
+    let safeX = clamp(contentBounds.x + insetBaseX, 0, availableWidth - 1);
+    let safeY = clamp(contentBounds.y + insetBaseY, 0, availableHeight - 1);
+    let safeWidth = Math.max(1, contentBounds.width - insetBaseX * 2);
+    let safeHeight = Math.max(1, contentBounds.height - insetBaseY * 2);
+
+    if (safeX + safeWidth > availableWidth) {
+      safeWidth = availableWidth - safeX;
+    }
+    if (safeY + safeHeight > availableHeight) {
+      safeHeight = availableHeight - safeY;
+    }
+
+    const usableWidth = Math.max(1, safeWidth * 0.96);
+    const usableHeight = Math.max(1, safeHeight * 0.96);
+
+    let candidateWidth = Math.min(usableWidth, crop.width * extraScale);
+    let candidateHeight = candidateWidth / targetAspect;
+
+    if (candidateHeight > usableHeight) {
+      candidateHeight = Math.min(usableHeight, crop.height * extraScale);
+      candidateWidth = candidateHeight * targetAspect;
+    }
+
+    sampleWidth = Math.max(1, candidateWidth);
+    sampleHeight = Math.max(1, candidateHeight);
+
+    const halfWidth = sampleWidth / 2;
+    const halfHeight = sampleHeight / 2;
+    const minFocusX = safeX + halfWidth;
+    const maxFocusX = safeX + usableWidth - halfWidth;
+    const minFocusY = safeY + halfHeight;
+    const maxFocusY = safeY + usableHeight - halfHeight;
+
+    const focusX = usableWidth <= sampleWidth
+      ? safeX + (usableWidth - sampleWidth) / 2 + halfWidth
+      : clamp(perspectiveFocus.x, minFocusX, maxFocusX);
+    const focusY = usableHeight <= sampleHeight
+      ? safeY + (usableHeight - sampleHeight) / 2 + halfHeight
+      : clamp(perspectiveFocus.y, minFocusY, maxFocusY);
+
+    sampleX = clamp(focusX - halfWidth, safeX, safeX + usableWidth - sampleWidth);
+    sampleY = clamp(focusY - halfHeight, safeY, safeY + usableHeight - sampleHeight);
+  } else {
+    const widthMargin = Math.max(0, (availableWidth - crop.width) / 2);
+    const heightMargin = Math.max(0, (availableHeight - crop.height) / 2);
+    const guardX = Math.min(
+      availableWidth / 2 - 2,
+      Math.max(12, widthMargin * 0.6 + rotationInfluence * availableWidth * 0.18 + distortion * availableWidth * 0.26)
+    );
+    const guardY = Math.min(
+      availableHeight / 2 - 2,
+      Math.max(12, heightMargin * 0.6 + rotationInfluence * availableHeight * 0.18 + distortion * availableHeight * 0.26)
+    );
+    const maxWidth = Math.max(crop.width, availableWidth - guardX * 2);
+    const maxHeight = Math.max(crop.height, availableHeight - guardY * 2);
+    sampleWidth = Math.min(maxWidth, crop.width * extraScale);
+    sampleHeight = Math.min(maxHeight, crop.height * extraScale);
+    sampleX = (availableWidth - sampleWidth) / 2;
+    sampleY = (availableHeight - sampleHeight) / 2;
+  }
 
   finalCtx.drawImage(
     perspective.canvas,
@@ -1110,7 +1167,7 @@ function improveImage(baseCanvas, metrics) {
   };
 
   applyToneAndColorAdjustments(finalCanvas, metrics, focusPoint);
-  const clarityAmount = metrics.textureStrength < 0.08 ? 0.28 : metrics.textureStrength < 0.12 ? 0.18 : 0.1;
+  const clarityAmount = metrics.textureStrength < 0.08 ? 0.2 : metrics.textureStrength < 0.12 ? 0.15 : 0.1;
   applyLocalContrast(finalCanvas, clarityAmount);
   const vignetteStrength = metrics.subjectSize < 0.12 ? 0.2 : metrics.subjectSize < 0.25 ? 0.12 : 0.08;
   applyVignette(finalCanvas, vignetteStrength, focusPoint);
@@ -1202,18 +1259,132 @@ function applySubtlePerspective(canvas, metrics) {
 }
 
 function toneCurve(value, options = {}) {
-  const { shadowBoost = 0, highlightPull = 0, midtoneBias = 0 } = options;
+  const {
+    shadowBoost = 0,
+    highlightPull = 0,
+    midtoneBias = 0,
+    blackLift = 0,
+    brightnessLift = 0
+  } = options;
   let v = value;
-  if (shadowBoost > 0 && v < 0.45) {
-    const influence = (0.45 - v) / 0.45;
-    v += influence * shadowBoost * 0.6;
+  if (shadowBoost > 0 && v < 0.6) {
+    const influence = (0.6 - v) / 0.6;
+    v += influence * shadowBoost * 0.35;
   }
-  if (highlightPull > 0 && v > 0.55) {
-    const influence = (v - 0.55) / 0.45;
-    v -= influence * highlightPull * 0.6;
+  if (blackLift > 0 && v < 0.4) {
+    const influence = (0.4 - v) / 0.4;
+    v += influence * blackLift * 0.55;
+  }
+  if (highlightPull > 0 && v > 0.6) {
+    const influence = (v - 0.6) / 0.4;
+    v -= influence * highlightPull * 0.5;
   }
   v += midtoneBias;
+  v += brightnessLift;
   return Math.min(1, Math.max(0, v));
+}
+
+function computeContentBounds(canvas, step = 4) {
+  const { width, height } = canvas;
+  if (!width || !height) {
+    return null;
+  }
+  const ctx = canvas.getContext('2d');
+  const { data } = ctx.getImageData(0, 0, width, height);
+  let minX = width;
+  let maxX = -1;
+  let minY = height;
+  let maxY = -1;
+  const alphaThreshold = 8;
+
+  for (let y = 0; y < height; y += step) {
+    const rowOffset = y * width * 4;
+    for (let x = 0; x < width; x += step) {
+      if (data[rowOffset + x * 4 + 3] > alphaThreshold) {
+        if (x < minX) minX = x;
+        if (x > maxX) maxX = x;
+        if (y < minY) minY = y;
+        if (y > maxY) maxY = y;
+      }
+    }
+  }
+
+  if (maxX < minX || maxY < minY) {
+    return null;
+  }
+
+  const refine = bounds => {
+    const startX = Math.max(0, bounds.x - step);
+    const endX = Math.min(width - 1, bounds.x + bounds.width + step);
+    const startY = Math.max(0, bounds.y - step);
+    const endY = Math.min(height - 1, bounds.y + bounds.height + step);
+
+    let top = startY;
+    while (top < endY) {
+      let hasPixel = false;
+      for (let x = startX; x <= endX; x++) {
+        if (data[(top * width + x) * 4 + 3] > alphaThreshold) {
+          hasPixel = true;
+          break;
+        }
+      }
+      if (hasPixel) break;
+      top++;
+    }
+
+    let bottom = endY;
+    while (bottom > top) {
+      let hasPixel = false;
+      for (let x = startX; x <= endX; x++) {
+        if (data[(bottom * width + x) * 4 + 3] > alphaThreshold) {
+          hasPixel = true;
+          break;
+        }
+      }
+      if (hasPixel) break;
+      bottom--;
+    }
+
+    let left = startX;
+    while (left < endX) {
+      let hasPixel = false;
+      for (let y = top; y <= bottom; y++) {
+        if (data[(y * width + left) * 4 + 3] > alphaThreshold) {
+          hasPixel = true;
+          break;
+        }
+      }
+      if (hasPixel) break;
+      left++;
+    }
+
+    let right = endX;
+    while (right > left) {
+      let hasPixel = false;
+      for (let y = top; y <= bottom; y++) {
+        if (data[(y * width + right) * 4 + 3] > alphaThreshold) {
+          hasPixel = true;
+          break;
+        }
+      }
+      if (hasPixel) break;
+      right--;
+    }
+
+    return {
+      x: left,
+      y: top,
+      width: Math.max(1, right - left + 1),
+      height: Math.max(1, bottom - top + 1)
+    };
+  };
+
+  return refine({
+    x: minX,
+    y: minY,
+    width: Math.max(1, maxX - minX + 1),
+    height: Math.max(1, maxY - minY + 1)
+  });
 }
 
 function applyToneAndColorAdjustments(canvas, metrics, focusPoint) {
@@ -1226,25 +1397,28 @@ function applyToneAndColorAdjustments(canvas, metrics, focusPoint) {
     Math.max(width, height),
     Math.min(width, height) * (metrics.subjectSize > 0 ? Math.min(0.65, Math.max(0.32, Math.sqrt(metrics.subjectSize) * 1.4)) : 0.48)
   );
-  const focusLift = metrics.subjectSize < 0.16 ? 0.18 : 0.1;
-  const shadowBoost = metrics.shadowClipping > 0.035 ? 0.28 : metrics.shadowClipping > 0.02 ? 0.18 : 0.1;
-  const highlightPull = metrics.highlightClipping > 0.035 ? 0.26 : metrics.highlightClipping > 0.02 ? 0.16 : 0.08;
-  const midtoneBias = metrics.midtoneBalance < 0.45 ? 0.08 : metrics.midtoneBalance > 0.6 ? -0.06 : 0;
+  const focusLift = metrics.subjectSize < 0.16 ? 0.15 : 0.1;
+  const brightnessLift = metrics.exposure < 120 ? 0.04 : metrics.exposure < 150 ? 0.028 : metrics.exposure < 180 ? 0.018 : 0.012;
+  const shadowBoost = 0.12 + (metrics.shadowClipping > 0.035 ? 0.05 : metrics.shadowClipping > 0.02 ? 0.03 : 0.015);
+  const blackLift = 0.05 + (metrics.shadowClipping > 0.035 ? 0.05 : metrics.shadowClipping > 0.02 ? 0.03 : 0.015);
+  const highlightPull = Math.min(0.12, metrics.highlightClipping > 0.035 ? 0.12 : metrics.highlightClipping > 0.02 ? 0.08 : 0.05);
+  const midtoneBias = metrics.midtoneBalance < 0.48 ? 0.05 : metrics.midtoneBalance > 0.6 ? -0.03 : 0.015;
   const colorBias = metrics.colorCast.bias;
-  const castStrength = Math.min(0.35, Math.abs(colorBias) / 255);
-  const warmShift = colorBias >= 0 ? castStrength : 0;
-  const coolShift = colorBias < 0 ? castStrength : 0;
-  const saturationTarget = metrics.subjectRect ? 118 : 108;
+  const castStrength = Math.min(0.28, Math.abs(colorBias) / 320);
+  let warmShift = colorBias >= 0 ? castStrength : 0;
+  let coolShift = colorBias < 0 ? castStrength : 0;
+  const naturalWarmth = colorBias <= 16 ? 0.015 : 0.008;
+  const saturationTarget = metrics.subjectRect ? 112 : 104;
   const saturationDelta = metrics.saturation - saturationTarget;
   let vibrance = 0;
-  if (saturationDelta < -18) {
-    vibrance = Math.min(0.16, Math.max(0.05, (-saturationDelta) / 230));
-  } else if (saturationDelta > 28) {
-    vibrance = -Math.min(0.12, Math.max(0.04, saturationDelta / 260));
-  } else if (Math.abs(saturationDelta) <= 18 && metrics.textureStrength < 0.1) {
-    vibrance = 0.04;
+  if (saturationDelta < -16) {
+    vibrance = Math.min(0.08, Math.max(0.025, (-saturationDelta) / 280));
+  } else if (saturationDelta > 22) {
+    vibrance = -Math.min(0.06, Math.max(0.02, saturationDelta / 320));
+  } else if (Math.abs(saturationDelta) <= 14 && metrics.textureStrength < 0.12) {
+    vibrance = 0.03;
   }
-  const gamma = metrics.exposure < 110 ? 0.95 : metrics.exposure > 165 ? 1.04 : 1;
+  const gamma = metrics.exposure < 130 ? 0.97 : metrics.exposure > 185 ? 1.02 : 0.99;
 
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
@@ -1255,12 +1429,33 @@ function applyToneAndColorAdjustments(canvas, metrics, focusPoint) {
 
       const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
       const tone = luminance / 255;
-      const mapped = toneCurve(tone, { shadowBoost, highlightPull, midtoneBias });
+      const mapped = toneCurve(tone, {
+        shadowBoost,
+        highlightPull,
+        midtoneBias,
+        blackLift,
+        brightnessLift
+      });
       const toneScale = tone > 0 ? mapped / tone : mapped;
       if (toneScale > 0) {
         r = clamp(r * toneScale);
         g = clamp(g * toneScale);
         b = clamp(b * toneScale);
+      }
+
+      if (brightnessLift > 0) {
+        const lift = brightnessLift * 0.7;
+        r = clamp(r + (255 - r) * lift);
+        g = clamp(g + (255 - g) * lift);
+        b = clamp(b + (255 - b) * lift);
+      }
+
+      if (blackLift > 0 && tone < 0.45) {
+        const blackFactor = (0.45 - tone) / 0.45;
+        const blackGain = blackLift * blackFactor * 36;
+        r = clamp(r + blackGain);
+        g = clamp(g + blackGain);
+        b = clamp(b + blackGain);
       }
 
       const dx = x - focus.x;
@@ -1289,6 +1484,13 @@ function applyToneAndColorAdjustments(canvas, metrics, focusPoint) {
         b = clamp(b - coolShift * 45);
       }
 
+      const warmthInfluence = Math.max(0, naturalWarmth - warmShift * 0.4);
+      if (warmthInfluence > 0) {
+        r = clamp(r + warmthInfluence * 22);
+        g = clamp(g + warmthInfluence * 10);
+        b = clamp(b - warmthInfluence * 24);
+      }
+
       if (vibrance !== 0) {
         const avg = (r + g + b) / 3;
         const saturationWeight = Math.min(
@@ -1296,7 +1498,7 @@ function applyToneAndColorAdjustments(canvas, metrics, focusPoint) {
           (Math.abs(r - avg) + Math.abs(g - avg) + Math.abs(b - avg)) / 255
         );
         const primaryBoost = 1 + vibrance * saturationWeight;
-        const secondaryBoost = 1 + vibrance * saturationWeight * 0.8;
+        const secondaryBoost = 1 + vibrance * saturationWeight * 0.75;
         r = clamp(avg + (r - avg) * primaryBoost);
         g = clamp(avg + (g - avg) * secondaryBoost);
         b = clamp(avg + (b - avg) * primaryBoost);
