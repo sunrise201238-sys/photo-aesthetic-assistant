@@ -2,14 +2,20 @@
 +const metricsContainer = document.getElementById('metrics');
 +const originalCanvas = document.getElementById('original-canvas');
 +const improvedCanvas = document.getElementById('improved-canvas');
++const originalMeta = document.getElementById('original-meta');
++const improvedMeta = document.getElementById('improved-meta');
 +const downloadButton = document.getElementById('download-button');
 +const toggleGrid = document.getElementById('toggle-grid');
++const resetButton = document.getElementById('reset-button');
 +const dropZone = document.getElementById('drop-zone');
 +const fileInput = document.getElementById('file-input');
 +const uploadButton = document.getElementById('upload-button');
 +const loadingIndicator = document.getElementById('loading-indicator');
 +const metricTemplate = document.getElementById('metric-template');
 +const langToggleButtons = document.querySelectorAll('.lang-toggle button');
++const analysisSummary = document.getElementById('analysis-summary');
++const engineStatus = document.getElementById('engine-status');
++const errorToast = document.getElementById('error-toast');
 +
 +let dictionaries = {};
 +let currentLang = 'en-US';
@@ -17,6 +23,8 @@
 +let currentDownloadUrl = null;
 +let lastOriginalMat = null;
 +let lastImprovedMat = null;
++let engineStatusState = 'loading';
++let errorTimeoutId = null;
 +
 +let cvReadyResolver;
 +let cvReadyResolved = false;
@@ -34,7 +42,7 @@
 +    if (cv.Mat) {
 +      cvReadyResolver();
 +    } else {
-+      cv['onRuntimeInitialized'] = () => cvReadyResolver();
++      cv.onRuntimeInitialized = () => cvReadyResolver();
 +    }
 +  } else {
 +    const timer = setInterval(() => {
@@ -43,7 +51,7 @@
 +        if (cv.Mat) {
 +          cvReadyResolver();
 +        } else {
-+          cv['onRuntimeInitialized'] = () => cvReadyResolver();
++          cv.onRuntimeInitialized = () => cvReadyResolver();
 +        }
 +      }
 +    }, 50);
@@ -61,29 +69,43 @@
 +  const langs = ['en-US', 'zh-TW'];
 +  for (const lang of langs) {
 +    const response = await fetch(`translations/${lang}.json`);
++    if (!response.ok) {
++      throw new Error(`Failed to load dictionary for ${lang}`);
++    }
 +    dictionaries[lang] = await response.json();
 +  }
 +}
 +
-+function translatePage() {
-+  const dict = dictionaries[currentLang];
-+  document.documentElement.lang = currentLang;
-+  document.querySelectorAll('[data-i18n]').forEach(el => {
-+    const key = el.getAttribute('data-i18n');
-+    if (dict[key]) {
-+      el.textContent = dict[key];
-+    }
-+  });
-+  langToggleButtons.forEach(btn => {
-+    btn.classList.toggle('active', btn.dataset.lang === currentLang);
-+  });
-+  if (currentMetrics) {
-+    renderMetrics(currentMetrics);
++function updateStatusBadge() {
++  if (!engineStatus) return;
++  const dict = dictionaries[currentLang] || {};
++  engineStatus.classList.remove('ready', 'error');
++  let key = 'engine_loading';
++  if (engineStatusState === 'ready') {
++    key = 'engine_ready';
++    engineStatus.classList.add('ready');
++  } else if (engineStatusState === 'error') {
++    key = 'engine_error';
++    engineStatus.classList.add('error');
 +  }
++  engineStatus.textContent = dict[key] || engineStatus.textContent;
 +}
 +
 +function setLoading(isLoading) {
 +  loadingIndicator.hidden = !isLoading;
++  dropZone.setAttribute('aria-busy', String(isLoading));
++  dropZone.classList.toggle('processing', isLoading);
++}
++
++function setCanvasMeta(element, mat) {
++  if (!element) return;
++  if (!mat) {
++    element.textContent = '';
++    return;
++  }
++  const dict = dictionaries[currentLang] || {};
++  const template = dict['meta_dimensions'] || '{{width}}×{{height}} px';
++  element.textContent = template.replace('{{width}}', mat.cols).replace('{{height}}', mat.rows);
 +}
 +
 +function renderMetrics(metrics) {
@@ -121,6 +143,77 @@
 +  metricsContainer.appendChild(feedbackWrap);
 +}
 +
++function updateAnalysisSummary(metrics) {
++  const dict = dictionaries[currentLang];
++  if (!analysisSummary) return;
++  if (!metrics) {
++    analysisSummary.innerHTML = dict['analysis_summary_default'] || '';
++    return;
++  }
++
++  const segments = [];
++  if (!metrics.subjectRect) {
++    segments.push(dict['summary_subject_missing']);
++  } else {
++    const offset = Math.max(Math.abs(metrics.subjectOffset.x), Math.abs(metrics.subjectOffset.y));
++    if (offset < 0.12) {
++      segments.push(dict['summary_subject_centered']);
++    } else {
++      segments.push(dict['summary_subject_off_center']);
++    }
++  }
++
++  if (Math.abs(metrics.horizonAngle) <= 1) {
++    segments.push(dict['summary_horizon_level']);
++  } else {
++    const template = dict['summary_horizon_tilted'] || '';
++    segments.push(template.replace('{{angle}}', formatters.degrees(Math.abs(metrics.horizonAngle))));
++  }
++
++  if (metrics.exposure < 110) {
++    segments.push(dict['summary_exposure_dark']);
++  } else if (metrics.exposure > 150) {
++    segments.push(dict['summary_exposure_bright']);
++  } else {
++    segments.push(dict['summary_exposure_balanced']);
++  }
++
++  if (metrics.foregroundBackground > 1.2) {
++    segments.push(dict['summary_balance_foreground']);
++  } else if (metrics.foregroundBackground < 0.8) {
++    segments.push(dict['summary_balance_background']);
++  } else {
++    segments.push(dict['summary_balance_even']);
++  }
++
++  if (metrics.sharpnessVariance < 120) {
++    segments.push(dict['summary_sharpness_soft']);
++  }
++
++  analysisSummary.innerHTML = segments.filter(Boolean).join(' ');
++}
++
++function translatePage() {
++  const dict = dictionaries[currentLang];
++  document.documentElement.lang = currentLang;
++  document.querySelectorAll('[data-i18n]').forEach(el => {
++    const key = el.getAttribute('data-i18n');
++    if (dict[key]) {
++      el.textContent = dict[key];
++    }
++  });
++  langToggleButtons.forEach(btn => {
++    btn.classList.toggle('active', btn.dataset.lang === currentLang);
++  });
++  if (currentMetrics) {
++    renderMetrics(currentMetrics);
++  }
++  updateAnalysisSummary(currentMetrics);
++  setCanvasMeta(originalMeta, lastOriginalMat);
++  setCanvasMeta(improvedMeta, lastImprovedMat);
++  updateStatusBadge();
++}
++
 +function drawGuides(canvas, metrics, options = {}) {
 +  const { showGuides = true, includeAnnotations = true } = options;
 +  if (!showGuides) return;
@@ -128,8 +221,8 @@
 +  const w = canvas.width;
 +  const h = canvas.height;
 +  ctx.save();
-+  ctx.lineWidth = 1.2;
-+  ctx.strokeStyle = 'rgba(81, 196, 245, 0.45)';
++  ctx.lineWidth = 1.1;
++  ctx.strokeStyle = 'rgba(91, 192, 255, 0.5)';
 +  ctx.setLineDash([6, 6]);
 +  for (let i = 1; i <= 2; i++) {
 +    const x = (w * i) / 3;
@@ -148,7 +241,7 @@
 +    const scaleX = w / metrics.imageSize.width;
 +    const scaleY = h / metrics.imageSize.height;
 +    ctx.strokeStyle = 'rgba(244, 114, 182, 0.75)';
-+    ctx.lineWidth = 1.5;
++    ctx.lineWidth = 1.4;
 +    ctx.strokeRect(
 +      metrics.subjectRect.x * scaleX,
 +      metrics.subjectRect.y * scaleY,
@@ -159,7 +252,7 @@
 +  if (includeAnnotations && metrics && metrics.horizonLine) {
 +    const scaleX = w / metrics.imageSize.width;
 +    const scaleY = h / metrics.imageSize.height;
-+    ctx.strokeStyle = 'rgba(94, 234, 212, 0.7)';
++    ctx.strokeStyle = 'rgba(94, 234, 212, 0.75)';
 +    ctx.lineWidth = 1.2;
 +    ctx.beginPath();
 +    ctx.moveTo(metrics.horizonLine[0].x * scaleX, metrics.horizonLine[0].y * scaleY);
@@ -169,15 +262,136 @@
 +  ctx.restore();
 +}
 +
++function showError(messageKey, fallback) {
++  if (!errorToast) return;
++  const dict = dictionaries[currentLang] || {};
++  errorToast.textContent = dict[messageKey] || fallback || 'Something went wrong.';
++  errorToast.hidden = false;
++  clearTimeout(errorTimeoutId);
++  errorTimeoutId = setTimeout(() => {
++    errorToast.hidden = true;
++  }, 4000);
++}
++
++function cleanupMats() {
++  if (lastOriginalMat) {
++    lastOriginalMat.delete();
++    lastOriginalMat = null;
++  }
++  if (lastImprovedMat) {
++    lastImprovedMat.delete();
++    lastImprovedMat = null;
++  }
++}
++
++function resetInterface() {
++  cleanupMats();
++  currentMetrics = null;
++  metricsContainer.innerHTML = '';
++  analysisSummary.innerHTML = dictionaries[currentLang]['analysis_summary_default'] || '';
++  const originalCtx = originalCanvas.getContext('2d');
++  originalCtx.clearRect(0, 0, originalCanvas.width, originalCanvas.height);
++  const improvedCtx = improvedCanvas.getContext('2d');
++  improvedCtx.clearRect(0, 0, improvedCanvas.width, improvedCanvas.height);
++  setCanvasMeta(originalMeta, null);
++  setCanvasMeta(improvedMeta, null);
++  downloadButton.disabled = true;
++  revokeDownloadUrl();
++}
++
++function revokeDownloadUrl() {
++  if (currentDownloadUrl) {
++    URL.revokeObjectURL(currentDownloadUrl);
++    currentDownloadUrl = null;
++  }
++}
++
++async function prepareDownload(mat) {
++  revokeDownloadUrl();
++  const offscreen = document.createElement('canvas');
++  offscreen.width = mat.cols;
++  offscreen.height = mat.rows;
++  cv.imshow(offscreen, mat);
++  await new Promise(resolve => {
++    offscreen.toBlob(blob => {
++      const dict = dictionaries[currentLang];
++      const name = dict['metric_download_name'] || 'improved-photo';
++      if (blob) {
++        currentDownloadUrl = URL.createObjectURL(blob);
++        downloadButton.disabled = false;
++        downloadButton.dataset.filename = `${name}.png`;
++      } else {
++        downloadButton.disabled = true;
++      }
++      resolve();
++    }, 'image/png');
++  });
++}
++
++function renderToCanvas(canvas, mat, options = {}) {
++  canvas.width = mat.cols;
++  canvas.height = mat.rows;
++  cv.imshow(canvas, mat);
++  drawGuides(canvas, options.metrics, {
++    showGuides: options.showGuides,
++    includeAnnotations: options.includeAnnotations
++  });
++}
++
++function refreshCanvases() {
++  if (!currentMetrics) return;
++  if (lastOriginalMat) {
++    renderToCanvas(originalCanvas, lastOriginalMat, {
++      showGuides: toggleGrid.checked,
++      metrics: currentMetrics,
++      includeAnnotations: true
++    });
++    setCanvasMeta(originalMeta, lastOriginalMat);
++  }
++  if (lastImprovedMat) {
++    renderToCanvas(improvedCanvas, lastImprovedMat, {
++      showGuides: toggleGrid.checked,
++      metrics: currentMetrics,
++      includeAnnotations: false
++    });
++    setCanvasMeta(improvedMeta, lastImprovedMat);
++  }
++}
++
++async function safeCreateImageBitmap(file) {
++  if ('createImageBitmap' in window) {
++    try {
++      return await createImageBitmap(file, { imageOrientation: 'from-image' });
++    } catch (error) {
++      console.warn('createImageBitmap failed, falling back to Image()', error);
++    }
++  }
++  return new Promise((resolve, reject) => {
++    const reader = new FileReader();
++    reader.onerror = () => reject(reader.error);
++    reader.onload = () => {
++      const img = new Image();
++      img.onload = () => resolve(img);
++      img.onerror = () => reject(new Error('Image load error'));
++      img.src = reader.result;
++    };
++    reader.readAsDataURL(file);
++  });
++}
++
 +async function readImageFile(file) {
-+  const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
-+  const { width, height } = scaleDimensions(bitmap.width, bitmap.height, MAX_DIMENSION);
++  const bitmap = await safeCreateImageBitmap(file);
++  const widthSource = bitmap.width || bitmap.naturalWidth;
++  const heightSource = bitmap.height || bitmap.naturalHeight;
++  const { width, height } = scaleDimensions(widthSource, heightSource, MAX_DIMENSION);
 +  const canvas = document.createElement('canvas');
 +  canvas.width = width;
 +  canvas.height = height;
 +  const ctx = canvas.getContext('2d');
 +  ctx.drawImage(bitmap, 0, 0, width, height);
-+  bitmap.close();
++  if (typeof bitmap.close === 'function') {
++    bitmap.close();
++  }
 +  return canvas;
 +}
 +
@@ -481,65 +695,10 @@
 +  return final;
 +}
 +
-+function renderToCanvas(canvas, mat, options = {}) {
-+  canvas.width = mat.cols;
-+  canvas.height = mat.rows;
-+  cv.imshow(canvas, mat);
-+  drawGuides(canvas, options.metrics, {
-+    showGuides: options.showGuides,
-+    includeAnnotations: options.includeAnnotations
-+  });
-+}
-+
-+function revokeDownloadUrl() {
-+  if (currentDownloadUrl) {
-+    URL.revokeObjectURL(currentDownloadUrl);
-+    currentDownloadUrl = null;
-+  }
-+}
-+
-+async function prepareDownload(mat) {
-+  revokeDownloadUrl();
-+  const offscreen = document.createElement('canvas');
-+  offscreen.width = mat.cols;
-+  offscreen.height = mat.rows;
-+  cv.imshow(offscreen, mat);
-+  await new Promise(resolve => {
-+    offscreen.toBlob(blob => {
-+      const dict = dictionaries[currentLang];
-+      const name = dict['metric_download_name'] || 'improved-photo';
-+      if (blob) {
-+        currentDownloadUrl = URL.createObjectURL(blob);
-+        downloadButton.disabled = false;
-+        downloadButton.dataset.filename = `${name}.png`;
-+      } else {
-+        downloadButton.disabled = true;
-+      }
-+      resolve();
-+    }, 'image/png');
-+  });
-+}
-+
-+function refreshCanvases() {
-+  if (!currentMetrics) return;
-+  if (lastOriginalMat) {
-+    renderToCanvas(originalCanvas, lastOriginalMat, {
-+      showGuides: toggleGrid.checked,
-+      metrics: currentMetrics,
-+      includeAnnotations: true
-+    });
-+  }
-+  if (lastImprovedMat) {
-+    renderToCanvas(improvedCanvas, lastImprovedMat, {
-+      showGuides: toggleGrid.checked,
-+      metrics: currentMetrics,
-+      includeAnnotations: false
-+    });
-+  }
-+}
-+
 +async function processFile(file) {
 +  await cvReady;
++  engineStatusState = 'ready';
++  updateStatusBadge();
 +  setLoading(true);
 +  downloadButton.disabled = true;
 +  try {
@@ -549,6 +708,7 @@
 +    const metrics = computeMetrics(src);
 +    currentMetrics = metrics;
 +    renderMetrics(metrics);
++    updateAnalysisSummary(metrics);
 +
 +    if (lastOriginalMat) lastOriginalMat.delete();
 +    lastOriginalMat = src.clone();
@@ -557,6 +717,7 @@
 +      metrics,
 +      includeAnnotations: true
 +    });
++    setCanvasMeta(originalMeta, lastOriginalMat);
 +
 +    const improved = improveImage(src, metrics);
 +    if (lastImprovedMat) lastImprovedMat.delete();
@@ -566,6 +727,7 @@
 +      metrics,
 +      includeAnnotations: false
 +    });
++    setCanvasMeta(improvedMeta, lastImprovedMat);
 +
 +    await prepareDownload(lastImprovedMat);
 +
@@ -573,6 +735,7 @@
 +    improved.delete();
 +  } catch (error) {
 +    console.error(error);
++    showError('error_processing', 'Unable to process this file. Please try another image.');
 +  } finally {
 +    setLoading(false);
 +  }
@@ -607,10 +770,17 @@
 +  uploadButton.addEventListener('click', () => fileInput.click());
 +  fileInput.addEventListener('change', handleFileInput);
 +  dropZone.addEventListener('click', () => fileInput.click());
++  dropZone.addEventListener('keydown', event => {
++    if (event.key === 'Enter' || event.key === ' ') {
++      event.preventDefault();
++      fileInput.click();
++    }
++  });
 +  dropZone.addEventListener('dragover', handleDrag);
 +  dropZone.addEventListener('dragleave', handleDrag);
 +  dropZone.addEventListener('drop', handleDrop);
 +  toggleGrid.addEventListener('change', refreshCanvases);
++  resetButton.addEventListener('click', resetInterface);
 +  downloadButton.addEventListener('click', () => {
 +    if (!currentDownloadUrl) return;
 +    const a = document.createElement('a');
@@ -634,6 +804,15 @@
 +  await loadDictionaries();
 +  translatePage();
 +  initEventListeners();
++  cvReady.then(() => {
++    engineStatusState = 'ready';
++    updateStatusBadge();
++  });
 +}
 +
 +init();
++
++window.addEventListener('beforeunload', () => {
++  cleanupMats();
++  revokeDownloadUrl();
++});
