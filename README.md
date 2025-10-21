@@ -77,3 +77,5 @@ User uploads → analyzed → improved version generated → instant download.
 Works on desktop and mobile browsers, entirely free and open-source via GitHub Pages.
 
 The GitHub repository shows multiple code languages (JavaScript/TypeScript, HTML, CSS, JSON, wasm) for clarity and transparency.
+
+<!-- refresh -->
