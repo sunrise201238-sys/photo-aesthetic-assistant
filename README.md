@@ -77,3 +77,15 @@ User uploads → analyzed → improved version generated → instant download.
 Works on desktop and mobile browsers, entirely free and open-source via GitHub Pages.
 
 The GitHub repository shows multiple code languages (JavaScript/TypeScript, HTML, CSS, JSON, wasm) for clarity and transparency.
+
+## Manual GitHub upload helpers
+
+This workspace does not have a Git remote configured, so `git push` fails. Add the upstream repository first (for example `git remote add origin https://github.com/you/photo-aesthetic-assistant.git`) or upload the built assets manually. The files that must be copied into GitHub Pages are:
+
+- `index.html`
+- `assets/css/styles.css`
+- `assets/js/main.js`
+- `translations/en-US.json`
+- `translations/zh-TW.json`
+
+Each file is already self-contained (no external fonts or scripts), so dropping them into the repository root will publish the fully offline experience.
