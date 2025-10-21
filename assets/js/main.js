@@ -1032,14 +1032,34 @@ function improveImage(baseCanvas, metrics) {
   finalCanvas.height = crop.height;
   const finalCtx = finalCanvas.getContext('2d');
 
-  const offsetX = Math.max(0, (perspective.canvas.width - crop.width) / 2);
-  const offsetY = Math.max(0, (perspective.canvas.height - crop.height) / 2);
+  const distortion = Math.max(Math.abs(perspective.skewX), Math.abs(perspective.skewY));
+  const rotationInfluence = Math.abs(rotation);
+  const extraScale = 1 + Math.min(0.35, rotationInfluence * 0.55 + distortion * 1.1 + (metrics.subjectSize < 0.18 ? 0.08 : 0.04));
+  const availableWidth = perspective.canvas.width;
+  const availableHeight = perspective.canvas.height;
+  const widthMargin = Math.max(0, (availableWidth - crop.width) / 2);
+  const heightMargin = Math.max(0, (availableHeight - crop.height) / 2);
+  const guardX = Math.min(
+    availableWidth / 2 - 2,
+    Math.max(12, widthMargin * 0.6 + rotationInfluence * availableWidth * 0.18 + distortion * availableWidth * 0.26)
+  );
+  const guardY = Math.min(
+    availableHeight / 2 - 2,
+    Math.max(12, heightMargin * 0.6 + rotationInfluence * availableHeight * 0.18 + distortion * availableHeight * 0.26)
+  );
+  const maxWidth = Math.max(crop.width, availableWidth - guardX * 2);
+  const maxHeight = Math.max(crop.height, availableHeight - guardY * 2);
+  const sampleWidth = Math.min(maxWidth, crop.width * extraScale);
+  const sampleHeight = Math.min(maxHeight, crop.height * extraScale);
+  const sampleX = (availableWidth - sampleWidth) / 2;
+  const sampleY = (availableHeight - sampleHeight) / 2;
+
   finalCtx.drawImage(
     perspective.canvas,
-    offsetX,
-    offsetY,
-    crop.width,
-    crop.height,
+    sampleX,
+    sampleY,
+    sampleWidth,
+    sampleHeight,
     0,
     0,
     crop.width,
@@ -1047,8 +1067,8 @@ function improveImage(baseCanvas, metrics) {
   );
 
   const focusPoint = {
-    x: Math.min(crop.width, Math.max(0, perspectiveFocus.x - offsetX)),
-    y: Math.min(crop.height, Math.max(0, perspectiveFocus.y - offsetY))
+    x: clamp(((perspectiveFocus.x - sampleX) / sampleWidth) * crop.width, 0, crop.width),
+    y: clamp(((perspectiveFocus.y - sampleY) / sampleHeight) * crop.height, 0, crop.height)
   };
 
   applyToneAndColorAdjustments(finalCanvas, metrics, focusPoint);
@@ -1125,7 +1145,12 @@ function rotateCanvas(sourceCanvas, rotation) {
 function applySubtlePerspective(canvas, metrics) {
   const width = canvas.width;
   const height = canvas.height;
-  const margin = Math.round(Math.max(width, height) * 0.05);
+  const maxDimension = Math.max(width, height);
+  const attitude = Math.max(Math.abs(metrics.subjectOffset.x), Math.abs(metrics.subjectOffset.y));
+  const angleInfluence = Math.min(0.18, Math.abs(metrics.horizonAngle) * 0.01);
+  const offsetInfluence = Math.min(0.12, attitude * 0.18);
+  const marginRatio = clamp(0.09 + angleInfluence + offsetInfluence, 0.09, 0.22);
+  const margin = Math.round(maxDimension * marginRatio);
   const skewX = clamp(metrics.subjectOffset.x * 0.08 + metrics.horizonAngle * 0.002, -0.18, 0.18);
   const skewY = clamp(metrics.subjectOffset.y * 0.06, -0.18, 0.18);
   const warpedCanvas = document.createElement('canvas');
@@ -1171,7 +1196,16 @@ function applyToneAndColorAdjustments(canvas, metrics, focusPoint) {
   const castStrength = Math.min(0.35, Math.abs(colorBias) / 255);
   const warmShift = colorBias >= 0 ? castStrength : 0;
   const coolShift = colorBias < 0 ? castStrength : 0;
-  const vibrance = metrics.saturation < 60 ? 0.22 : metrics.saturation < 90 ? 0.12 : metrics.saturation > 180 ? -0.12 : 0;
+  const saturationTarget = metrics.subjectRect ? 118 : 108;
+  const saturationDelta = metrics.saturation - saturationTarget;
+  let vibrance = 0;
+  if (saturationDelta < -18) {
+    vibrance = Math.min(0.16, Math.max(0.05, (-saturationDelta) / 230));
+  } else if (saturationDelta > 28) {
+    vibrance = -Math.min(0.12, Math.max(0.04, saturationDelta / 260));
+  } else if (Math.abs(saturationDelta) <= 18 && metrics.textureStrength < 0.1) {
+    vibrance = 0.04;
+  }
   const gamma = metrics.exposure < 110 ? 0.95 : metrics.exposure > 165 ? 1.04 : 1;
 
   for (let y = 0; y < height; y++) {
@@ -1219,8 +1253,12 @@ function applyToneAndColorAdjustments(canvas, metrics, focusPoint) {
 
       if (vibrance !== 0) {
         const avg = (r + g + b) / 3;
-        const primaryBoost = 1 + vibrance;
-        const secondaryBoost = 1 + vibrance * 0.85;
+        const saturationWeight = Math.min(
+          1,
+          (Math.abs(r - avg) + Math.abs(g - avg) + Math.abs(b - avg)) / 255
+        );
+        const primaryBoost = 1 + vibrance * saturationWeight;
+        const secondaryBoost = 1 + vibrance * saturationWeight * 0.8;
         r = clamp(avg + (r - avg) * primaryBoost);
         g = clamp(avg + (g - avg) * secondaryBoost);
         b = clamp(avg + (b - avg) * primaryBoost);
