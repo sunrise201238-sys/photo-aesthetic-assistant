@@ -1,10 +1,3 @@
- (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
-diff --git a/translations/zh-TW.json b/translations/zh-TW.json
-new file mode 100644
-index 0000000000000000000000000000000000000000..767a92339d2af2a60770179df7bd8ff3aebf7dba
---- /dev/null
-+++ b/translations/zh-TW.json
-@@ -0,0 +1,32 @@
 +{
 +  "app_title": "攝影美感助手",
 +  "app_tagline": "即時、私密的構圖回饋，全都在你的瀏覽器內完成。",
@@ -37,6 +30,3 @@ index 0000000000000000000000000000000000000000..767a92339d2af2a60770179df7bd8ff3
 +  "feedback_balance": "調整前景與背景的重量以保持清晰。",
 +  "feedback_good": "整體平衡佳，只需微調即可！"
 +}
- 
-EOF
-)
