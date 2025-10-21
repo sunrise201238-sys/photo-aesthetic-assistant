@@ -469,8 +469,9 @@ function renderMetrics(metrics) {
 function updateAnalysisSummary(metrics) {
   const dict = dictionaries[currentLang] || {};
   if (!analysisSummary) return;
+  analysisSummary.innerHTML = '';
   if (!metrics) {
-    analysisSummary.innerHTML = dict['analysis_summary_default'] || '';
+    analysisSummary.textContent = dict['analysis_summary_default'] || '';
     return;
   }
 
@@ -529,7 +530,44 @@ function updateAnalysisSummary(metrics) {
     segments.push(template.replace('{{angle}}', formatters.degrees(Math.abs(metrics.leadingLines.angle))));
   }
 
-  analysisSummary.innerHTML = segments.filter(Boolean).join(' ');
+  const items = segments.filter(Boolean);
+  if (!items.length) {
+    analysisSummary.textContent = dict['analysis_summary_default'] || '';
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+  for (const segment of items) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'summary-item';
+
+    const temp = document.createElement('div');
+    temp.innerHTML = segment;
+    const strong = temp.querySelector('strong');
+
+    if (strong) {
+      const label = document.createElement('span');
+      label.className = 'summary-label';
+      label.textContent = strong.textContent.trim();
+      const text = document.createElement('span');
+      text.className = 'summary-text';
+      strong.remove();
+      const detail = temp.textContent.trim();
+      text.textContent = detail;
+      wrapper.append(label, text);
+    } else {
+      wrapper.classList.add('summary-item--single');
+      const text = document.createElement('span');
+      text.className = 'summary-text';
+      const detail = temp.textContent.trim();
+      text.textContent = detail;
+      wrapper.append(text);
+    }
+
+    fragment.appendChild(wrapper);
+  }
+
+  analysisSummary.appendChild(fragment);
 }
 
 function scaleDimensions(width, height, maxSize) {
