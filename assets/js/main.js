@@ -1,1039 +1,818 @@
-const MAX_DIMENSION = 2048;
-
-const metricsContainer = document.getElementById('metrics');
-const originalCanvas = document.getElementById('original-canvas');
-const improvedCanvas = document.getElementById('improved-canvas');
-const originalMeta = document.getElementById('original-meta');
-const improvedMeta = document.getElementById('improved-meta');
-const downloadButton = document.getElementById('download-button');
-const toggleGrid = document.getElementById('toggle-grid');
-const resetButton = document.getElementById('reset-button');
-const dropZone = document.getElementById('drop-zone');
-const fileInput = document.getElementById('file-input');
-const uploadButton = document.getElementById('upload-button');
-const loadingIndicator = document.getElementById('loading-indicator');
-const metricTemplate = document.getElementById('metric-template');
-const langToggleButtons = document.querySelectorAll('.lang-toggle button');
-const analysisSummary = document.getElementById('analysis-summary');
-const engineStatus = document.getElementById('engine-status');
-const errorToast = document.getElementById('error-toast');
-
-const fallbackDictionaries = {
-  'en-US': {
-    "app_title": "Photo Aesthetic Assistant",
-    "app_tagline": "Private, instant composition feedback in your browser.",
-    "analysis_heading": "Analyse & enhance instantly",
-    "analysis_subheading": "Upload a single photo to receive automatic composition guidance and a refined suggestion.",
-    "drop_instructions": "Drop an image here or click to choose a file.",
-    "drop_hint": "JPG, PNG, HEIC up to 12 MP. Processed privately on-device.",
-    "select_button": "Select Photo",
-    "reset_button": "Reset",
-    "original_title": "Original",
-    "improved_title": "Improved Suggestion",
-    "download_button": "Download Improved Image",
-    "toggle_grid": "Show guides",
-    "footer_note": "All processing happens locally in your browser. No uploads. No tracking.",
-    "loading": "Processing photo…",
-    "engine_loading": "Loading vision engine…",
-    "engine_ready": "Vision engine ready",
-    "engine_error": "Vision engine unavailable",
-    "metric_main_subject": "Main subject position",
-    "metric_horizon": "Horizon angle",
-    "metric_rule_of_thirds": "Rule-of-thirds alignment",
-    "metric_sharpness": "Sharpness variance",
-    "metric_exposure": "Exposure",
-    "metric_contrast": "Contrast",
-    "metric_saturation": "Saturation",
-    "metric_color_balance": "Color balance",
-    "metric_foreground_background": "Foreground vs. background",
-    "metric_subject_size": "Subject size",
-    "metric_download_name": "improved-photo",
-    "metric_feedback": "Suggestions",
-    "analysis_summary_default": "Upload a photo to see composition notes tailored to your scene.",
-    "summary_subject_missing": "<strong>Subject:</strong> No dominant subject detected — choose a clearer focal point.",
-    "summary_subject_centered": "<strong>Subject:</strong> Nicely balanced near the thirds intersections.",
-    "summary_subject_off_center": "<strong>Subject:</strong> Off-centre — cropping will guide the eye to a stronger point.",
-    "summary_horizon_level": "<strong>Horizon:</strong> Already level and steady.",
-    "summary_horizon_tilted": "<strong>Horizon:</strong> Tilted by {{angle}} — auto rotation applied.",
-    "summary_exposure_dark": "<strong>Light:</strong> Slightly underexposed; midtones lifted in the suggestion.",
-    "summary_exposure_bright": "<strong>Light:</strong> Highlights are bright; toned down for balance.",
-    "summary_exposure_balanced": "<strong>Light:</strong> Balanced exposure with healthy midtones.",
-    "summary_balance_foreground": "<strong>Depth:</strong> Foreground dominates; background softened for separation.",
-    "summary_balance_background": "<strong>Depth:</strong> Background detail is strong; foreground contrast improved.",
-    "summary_balance_even": "<strong>Depth:</strong> Foreground and background feel evenly weighted.",
-    "summary_sharpness_soft": "<strong>Texture:</strong> Edges read soft — stabilise capture for extra crispness.",
-    "tip_subject_title": "Find the subject",
-    "tip_subject_text": "The assistant highlights the strongest contour to estimate your main subject position.",
-    "tip_horizon_title": "Balance the horizon",
-    "tip_horizon_text": "We detect dominant lines to level the scene and keep skies straight.",
-    "tip_color_title": "Polish the tones",
-    "tip_color_text": "Subtle exposure, contrast, and color tweaks keep the improved version natural.",
-    "meta_dimensions": "{{width}}×{{height}} px",
-    "error_processing": "Unable to process this file. Please try another image.",
-    "error_dictionary": "Using built-in language defaults. Some translations may be missing.",
-    "feedback_rotation": "Slightly rotate the horizon to level the scene.",
-    "feedback_crop": "Consider cropping so the subject sits on a thirds intersection.",
-    "feedback_exposure": "Brighten the midtones for better balance.",
-    "feedback_contrast": "Increase contrast to emphasize depth.",
-    "feedback_saturation": "Boost saturation slightly for richer color.",
-    "feedback_sharpness": "Try increasing focus or reducing camera shake.",
-    "feedback_balance": "Balance foreground and background elements for clarity.",
-    "feedback_good": "Great balance! Only minor refinements suggested."
-  },
-  'zh-TW': {
-    "app_title": "影像美感助手",
-    "app_tagline": "完全在瀏覽器內即時提供構圖建議，隱私零外洩。",
-    "analysis_heading": "立即分析並優化",
-    "analysis_subheading": "上傳單張照片，即可獲得自動構圖建議與優化版本。",
-    "drop_instructions": "拖曳影像到此或點擊選擇檔案。",
-    "drop_hint": "支援 JPG、PNG、HEIC，最多 1200 萬像素。所有處理皆在本機完成。",
-    "select_button": "選擇照片",
-    "reset_button": "重設",
-    "original_title": "原始影像",
-    "improved_title": "優化建議",
-    "download_button": "下載優化影像",
-    "toggle_grid": "顯示輔助線",
-    "footer_note": "所有處理都在您的瀏覽器內進行，不需上傳、不會追蹤。",
-    "loading": "影像分析中…",
-    "engine_loading": "視覺引擎載入中…",
-    "engine_ready": "視覺引擎就緒",
-    "engine_error": "視覺引擎無法使用",
-    "metric_main_subject": "主體位置",
-    "metric_horizon": "地平線角度",
-    "metric_rule_of_thirds": "三分構圖對齊",
-    "metric_sharpness": "銳利度變異",
-    "metric_exposure": "曝光",
-    "metric_contrast": "對比",
-    "metric_saturation": "飽和度",
-    "metric_color_balance": "色彩平衡",
-    "metric_foreground_background": "前景 / 背景比例",
-    "metric_subject_size": "主體比例",
-    "metric_download_name": "improved-photo",
-    "metric_feedback": "建議",
-    "analysis_summary_default": "上傳照片即可看到針對場景量身打造的構圖重點。",
-    "summary_subject_missing": "<strong>主體：</strong> 未偵測到明顯主體，請選擇更清楚的焦點。",
-    "summary_subject_centered": "<strong>主體：</strong> 已落在三分線附近，構圖平衡。",
-    "summary_subject_off_center": "<strong>主體：</strong> 稍微偏離三分線，裁切後可更聚焦。",
-    "summary_horizon_level": "<strong>地平線：</strong> 已經水平穩定。",
-    "summary_horizon_tilted": "<strong>地平線：</strong> 傾斜 {{angle}}，已自動校正。",
-    "summary_exposure_dark": "<strong>光線：</strong> 稍微偏暗，優化版本提升了中間調。",
-    "summary_exposure_bright": "<strong>光線：</strong> 高光較亮，已適度壓低。",
-    "summary_exposure_balanced": "<strong>光線：</strong> 曝光均衡，中間調健康。",
-    "summary_balance_foreground": "<strong>景深：</strong> 前景佔比高，已讓背景更柔和。",
-    "summary_balance_background": "<strong>景深：</strong> 背景細節強烈，已提升前景對比。",
-    "summary_balance_even": "<strong>景深：</strong> 前景與背景比例平衡。",
-    "summary_sharpness_soft": "<strong>細節：</strong> 邊緣略軟，可嘗試穩定拍攝以提高銳利度。",
-    "tip_subject_title": "鎖定主體",
-    "tip_subject_text": "透過強烈輪廓估計最有力的主體位置。",
-    "tip_horizon_title": "維持水平",
-    "tip_horizon_text": "偵測主要線條自動校正地平線。",
-    "tip_color_title": "調整色調",
-    "tip_color_text": "細緻的曝光與色彩調整讓畫面自然不失真。",
-    "meta_dimensions": "{{width}}×{{height}} px",
-    "error_processing": "此檔案無法處理，請改用其他影像。",
-    "error_dictionary": "使用內建語系字串，部分翻譯可能缺少。",
-    "feedback_rotation": "稍微旋轉地平線以保持水平。",
-    "feedback_crop": "調整裁切讓主體落在三分線上。",
-    "feedback_exposure": "提升中間調亮度讓畫面更平衡。",
-    "feedback_contrast": "增加對比以強化景深層次。",
-    "feedback_saturation": "些微提升飽和度讓色彩更鮮明。",
-    "feedback_sharpness": "拍攝時保持穩定以獲得更銳利的影像。",
-    "feedback_balance": "調整前景與背景比例讓構圖更清晰。",
-    "feedback_good": "整體表現優異，只需細部微調。"
-  }
-};
-
-let dictionaries = cloneFallback();
-let currentLang = 'en-US';
-let currentMetrics = null;
-let currentDownloadUrl = null;
-let lastOriginalCanvas = null;
-let lastImprovedCanvas = null;
-let engineStatusState = 'loading';
-let errorTimeoutId = null;
-let dictionaryWarningShown = false;
-
-const formatters = {
-  percent: value => `${Math.round(value * 100)}%`,
-  degrees: value => `${value.toFixed(1)}°`,
-  score: value => value.toFixed(2),
-  numeric: value => value.toFixed(1)
-};
-
-function cloneFallback() {
-  return JSON.parse(JSON.stringify(fallbackDictionaries));
-}
-
-function updateStatusBadge() {
-  if (!engineStatus) return;
-  const dict = dictionaries[currentLang] || {};
-  engineStatus.classList.remove('ready', 'error');
-  let key = 'engine_loading';
-  if (engineStatusState === 'ready') {
-    key = 'engine_ready';
-    engineStatus.classList.add('ready');
-  } else if (engineStatusState === 'error') {
-    key = 'engine_error';
-    engineStatus.classList.add('error');
-  }
-  engineStatus.textContent = dict[key] || engineStatus.textContent;
-}
-
-function setLoading(isLoading) {
-  loadingIndicator.hidden = !isLoading;
-  dropZone.setAttribute('aria-busy', String(isLoading));
-  dropZone.classList.toggle('processing', isLoading);
-}
-
-function setCanvasMeta(element, source) {
-  if (!element) return;
-  if (!source) {
-    element.textContent = '';
-    return;
-  }
-  const dict = dictionaries[currentLang] || {};
-  const template = dict['meta_dimensions'] || '{{width}}×{{height}} px';
-  element.textContent = template
-    .replace('{{width}}', source.width)
-    .replace('{{height}}', source.height);
-}
-
-function drawGuides(canvas, metrics, options = {}) {
-  const { showGuides = true, includeAnnotations = true } = options;
-  if (!showGuides) return;
-  const ctx = canvas.getContext('2d');
-  const w = canvas.width;
-  const h = canvas.height;
-  ctx.save();
-  ctx.lineWidth = 1.1;
-  ctx.strokeStyle = 'rgba(91, 192, 255, 0.5)';
-  ctx.setLineDash([6, 6]);
-  for (let i = 1; i <= 2; i++) {
-    const x = (w * i) / 3;
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x, h);
-    ctx.stroke();
-    const y = (h * i) / 3;
-    ctx.beginPath();
-    ctx.moveTo(0, y);
-    ctx.lineTo(w, y);
-    ctx.stroke();
-  }
-  ctx.setLineDash([]);
-  if (includeAnnotations && metrics && metrics.subjectRect) {
-    const scaleX = w / metrics.imageSize.width;
-    const scaleY = h / metrics.imageSize.height;
-    ctx.strokeStyle = 'rgba(244, 114, 182, 0.75)';
-    ctx.lineWidth = 1.4;
-    ctx.strokeRect(
-      metrics.subjectRect.x * scaleX,
-      metrics.subjectRect.y * scaleY,
-      metrics.subjectRect.width * scaleX,
-      metrics.subjectRect.height * scaleY
-    );
-  }
-  if (includeAnnotations && metrics && metrics.horizonLine) {
-    const scaleX = w / metrics.imageSize.width;
-    const scaleY = h / metrics.imageSize.height;
-    ctx.strokeStyle = 'rgba(94, 234, 212, 0.75)';
-    ctx.lineWidth = 1.2;
-    ctx.beginPath();
-    ctx.moveTo(metrics.horizonLine[0].x * scaleX, metrics.horizonLine[0].y * scaleY);
-    ctx.lineTo(metrics.horizonLine[1].x * scaleX, metrics.horizonLine[1].y * scaleY);
-    ctx.stroke();
-  }
-  ctx.restore();
-}
-
-function showError(messageKey, fallback) {
-  if (!errorToast) return;
-  const dict = dictionaries[currentLang] || {};
-  errorToast.textContent = dict[messageKey] || fallback || 'Something went wrong.';
-  errorToast.hidden = false;
-  clearTimeout(errorTimeoutId);
-  errorTimeoutId = setTimeout(() => {
-    errorToast.hidden = true;
-  }, 4000);
-}
-
-function cleanupCanvases() {
-  lastOriginalCanvas = null;
-  lastImprovedCanvas = null;
-}
-
-function resetInterface() {
-  cleanupCanvases();
-  currentMetrics = null;
-  metricsContainer.innerHTML = '';
-  const dict = dictionaries[currentLang] || {};
-  analysisSummary.innerHTML = dict['analysis_summary_default'] || '';
-  const originalCtx = originalCanvas.getContext('2d');
-  originalCtx.clearRect(0, 0, originalCanvas.width, originalCanvas.height);
-  const improvedCtx = improvedCanvas.getContext('2d');
-  improvedCtx.clearRect(0, 0, improvedCanvas.width, improvedCanvas.height);
-  setCanvasMeta(originalMeta, null);
-  setCanvasMeta(improvedMeta, null);
-  downloadButton.disabled = true;
-  revokeDownloadUrl();
-}
-
-function revokeDownloadUrl() {
-  if (currentDownloadUrl) {
-    URL.revokeObjectURL(currentDownloadUrl);
-    currentDownloadUrl = null;
-  }
-}
-
-async function prepareDownload(sourceCanvas) {
-  revokeDownloadUrl();
-  await new Promise(resolve => {
-    sourceCanvas.toBlob(blob => {
-      const dict = dictionaries[currentLang] || {};
-      const name = dict['metric_download_name'] || 'improved-photo';
-      if (blob) {
-        currentDownloadUrl = URL.createObjectURL(blob);
-        downloadButton.disabled = false;
-        downloadButton.dataset.filename = `${name}.png`;
-      } else {
-        downloadButton.disabled = true;
-      }
-      resolve();
-    }, 'image/png');
-  });
-}
-
-function renderToCanvas(targetCanvas, sourceCanvas, options = {}) {
-  targetCanvas.width = sourceCanvas.width;
-  targetCanvas.height = sourceCanvas.height;
-  const ctx = targetCanvas.getContext('2d');
-  ctx.clearRect(0, 0, targetCanvas.width, targetCanvas.height);
-  ctx.drawImage(sourceCanvas, 0, 0);
-  drawGuides(targetCanvas, options.metrics, {
-    showGuides: options.showGuides,
-    includeAnnotations: options.includeAnnotations
-  });
-}
-
-function refreshCanvases() {
-  if (!currentMetrics) return;
-  if (lastOriginalCanvas) {
-    renderToCanvas(originalCanvas, lastOriginalCanvas, {
-      showGuides: toggleGrid.checked,
-      metrics: currentMetrics,
-      includeAnnotations: true
-    });
-    setCanvasMeta(originalMeta, lastOriginalCanvas);
-  }
-  if (lastImprovedCanvas) {
-    renderToCanvas(improvedCanvas, lastImprovedCanvas, {
-      showGuides: toggleGrid.checked,
-      metrics: currentMetrics,
-      includeAnnotations: false
-    });
-    setCanvasMeta(improvedMeta, lastImprovedCanvas);
-  }
-}
-
-function translatePage() {
-  const dict = dictionaries[currentLang] || {};
-  document.documentElement.lang = currentLang;
-  document.querySelectorAll('[data-i18n]').forEach(el => {
-    const key = el.getAttribute('data-i18n');
-    if (dict[key]) {
-      el.textContent = dict[key];
-    }
-  });
-  langToggleButtons.forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.lang === currentLang);
-  });
-  if (!currentMetrics) {
-    analysisSummary.innerHTML = dict['analysis_summary_default'] || '';
-  } else {
-    renderMetrics(currentMetrics);
-    updateAnalysisSummary(currentMetrics);
-    setCanvasMeta(originalMeta, lastOriginalCanvas);
-    setCanvasMeta(improvedMeta, lastImprovedCanvas);
-  }
-  updateStatusBadge();
-}
-
-function renderMetrics(metrics) {
-  const dict = dictionaries[currentLang] || {};
-  metricsContainer.innerHTML = '';
-  const entries = [
-    ['metric_main_subject', `${formatters.percent(Math.max(0, 0.5 - Math.abs(metrics.subjectOffset.x)))} / ${formatters.percent(Math.max(0, 0.5 - Math.abs(metrics.subjectOffset.y)))}`],
-    ['metric_horizon', formatters.degrees(metrics.horizonAngle)],
-    ['metric_rule_of_thirds', formatters.score(metrics.ruleOfThirdsScore)],
-    ['metric_sharpness', formatters.numeric(metrics.sharpnessVariance)],
-    ['metric_exposure', formatters.numeric(metrics.exposure)],
-    ['metric_contrast', formatters.numeric(metrics.contrast)],
-    ['metric_saturation', formatters.numeric(metrics.saturation)],
-    ['metric_color_balance', `${metrics.colorBalance.r.toFixed(0)} / ${metrics.colorBalance.g.toFixed(0)} / ${metrics.colorBalance.b.toFixed(0)}`],
-    ['metric_foreground_background', formatters.score(metrics.foregroundBackground)],
-    ['metric_subject_size', formatters.percent(metrics.subjectSize)]
-  ];
-
-  for (const [labelKey, value] of entries) {
-    const fragment = metricTemplate.content.cloneNode(true);
-    fragment.querySelector('.metric-label').textContent = dict[labelKey] || labelKey;
-    fragment.querySelector('.metric-value').textContent = value;
-    metricsContainer.appendChild(fragment);
-  }
-
-  const feedbackWrap = document.createElement('div');
-  feedbackWrap.className = 'metric';
-  const label = document.createElement('span');
-  label.className = 'metric-label';
-  label.textContent = dict['metric_feedback'] || 'Suggestions';
-  const valueSpan = document.createElement('span');
-  valueSpan.className = 'metric-value';
-  valueSpan.innerHTML = metrics.feedback.map(key => dict[key] || key).join('<br>');
-  feedbackWrap.append(label, valueSpan);
-  metricsContainer.appendChild(feedbackWrap);
-}
-
-function updateAnalysisSummary(metrics) {
-  const dict = dictionaries[currentLang] || {};
-  if (!analysisSummary) return;
-  if (!metrics) {
-    analysisSummary.innerHTML = dict['analysis_summary_default'] || '';
-    return;
-  }
-
-  const segments = [];
-  if (!metrics.subjectRect) {
-    segments.push(dict['summary_subject_missing']);
-  } else {
-    const offset = Math.max(Math.abs(metrics.subjectOffset.x), Math.abs(metrics.subjectOffset.y));
-    if (offset < 0.12) {
-      segments.push(dict['summary_subject_centered']);
-    } else {
-      segments.push(dict['summary_subject_off_center']);
-    }
-  }
-
-  if (Math.abs(metrics.horizonAngle) <= 1) {
-    segments.push(dict['summary_horizon_level']);
-  } else {
-    const template = dict['summary_horizon_tilted'] || '';
-    segments.push(template.replace('{{angle}}', formatters.degrees(Math.abs(metrics.horizonAngle))));
-  }
-
-  if (metrics.exposure < 110) {
-    segments.push(dict['summary_exposure_dark']);
-  } else if (metrics.exposure > 150) {
-    segments.push(dict['summary_exposure_bright']);
-  } else {
-    segments.push(dict['summary_exposure_balanced']);
-  }
-
-  if (metrics.foregroundBackground > 1.2) {
-    segments.push(dict['summary_balance_foreground']);
-  } else if (metrics.foregroundBackground < 0.8) {
-    segments.push(dict['summary_balance_background']);
-  } else {
-    segments.push(dict['summary_balance_even']);
-  }
-
-  if (metrics.sharpnessVariance < 120) {
-    segments.push(dict['summary_sharpness_soft']);
-  }
-
-  analysisSummary.innerHTML = segments.filter(Boolean).join(' ');
-}
-
-function scaleDimensions(width, height, maxSize) {
-  if (Math.max(width, height) <= maxSize) {
-    return { width, height };
-  }
-  const ratio = width / height;
-  if (ratio > 1) {
-    return { width: maxSize, height: Math.round(maxSize / ratio) };
-  }
-  return { width: Math.round(maxSize * ratio), height: maxSize };
-}
-
-function readFileAsArrayBuffer(file, length = 128 * 1024) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject(reader.error);
-    reader.readAsArrayBuffer(file.slice(0, length));
-  });
-}
-
-async function getExifOrientation(file) {
-  try {
-    const buffer = await readFileAsArrayBuffer(file);
-    const view = new DataView(buffer);
-    if (view.getUint16(0, false) !== 0xffd8) {
-      return 1;
-    }
-    let offset = 2;
-    const length = view.byteLength;
-    while (offset < length) {
-      const marker = view.getUint16(offset, false);
-      offset += 2;
-      if (marker === 0xffe1) {
-        const blockLength = view.getUint16(offset, false);
-        offset += 2;
-        if (view.getUint32(offset, false) !== 0x45786966) {
-          break;
-        }
-        offset += 6;
-        const little = view.getUint16(offset, false) === 0x4949;
-        offset += view.getUint32(offset + 4, little);
-        const tags = view.getUint16(offset, little);
-        offset += 2;
-        for (let i = 0; i < tags; i++) {
-          const tagOffset = offset + i * 12;
-          if (view.getUint16(tagOffset, little) === 0x0112) {
-            return view.getUint16(tagOffset + 8, little);
-          }
-        }
-      } else if ((marker & 0xff00) !== 0xff00) {
-        break;
-      } else {
-        offset += view.getUint16(offset, false);
-      }
-    }
-  } catch (error) {
-    console.warn('Failed to read EXIF orientation', error);
-  }
-  return 1;
-}
-
-function orientImageSource(source, orientation) {
-  const width = source.width || source.naturalWidth;
-  const height = source.height || source.naturalHeight;
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
-
-  switch (orientation) {
-    case 2:
-      canvas.width = width;
-      canvas.height = height;
-      ctx.translate(width, 0);
-      ctx.scale(-1, 1);
-      break;
-    case 3:
-      canvas.width = width;
-      canvas.height = height;
-      ctx.translate(width, height);
-      ctx.rotate(Math.PI);
-      break;
-    case 4:
-      canvas.width = width;
-      canvas.height = height;
-      ctx.translate(0, height);
-      ctx.scale(1, -1);
-      break;
-    case 5:
-      canvas.width = height;
-      canvas.height = width;
-      ctx.rotate(0.5 * Math.PI);
-      ctx.scale(1, -1);
-      break;
-    case 6:
-      canvas.width = height;
-      canvas.height = width;
-      ctx.rotate(0.5 * Math.PI);
-      ctx.translate(0, -height);
-      break;
-    case 7:
-      canvas.width = height;
-      canvas.height = width;
-      ctx.rotate(0.5 * Math.PI);
-      ctx.translate(width, -height);
-      ctx.scale(-1, 1);
-      break;
-    case 8:
-      canvas.width = height;
-      canvas.height = width;
-      ctx.rotate(-0.5 * Math.PI);
-      ctx.translate(-width, 0);
-      break;
-    default:
-      canvas.width = width;
-      canvas.height = height;
-      break;
-  }
-
-  ctx.drawImage(source, 0, 0);
-  return canvas;
-}
-
-function drawSourceToCanvas(source) {
-  const width = source.width || source.naturalWidth;
-  const height = source.height || source.naturalHeight;
-  const canvas = document.createElement('canvas');
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(source, 0, 0);
-  if (typeof source.close === 'function') {
-    source.close();
-  }
-  return canvas;
-}
-
-function loadImageElement(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const img = new Image();
-      img.onload = () => resolve(img);
-      img.onerror = reject;
-      img.src = reader.result;
-    };
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
-}
-
-async function readImageFile(file) {
-  const orientation = await getExifOrientation(file);
-  let source = null;
-  let orientationHandled = false;
-
-  if ('createImageBitmap' in window) {
-    try {
-      source = await createImageBitmap(file, { imageOrientation: 'from-image' });
-      orientationHandled = true;
-    } catch (error) {
-      console.warn('createImageBitmap failed, falling back to <img>', error);
-    }
-  }
-
-  if (!source) {
-    source = await loadImageElement(file);
-  }
-
-  const baseCanvas = orientationHandled ? drawSourceToCanvas(source) : orientImageSource(source, orientation);
-  const targetSize = scaleDimensions(baseCanvas.width, baseCanvas.height, MAX_DIMENSION);
-  const resizedCanvas = document.createElement('canvas');
-  resizedCanvas.width = targetSize.width;
-  resizedCanvas.height = targetSize.height;
-  const ctx = resizedCanvas.getContext('2d');
-  ctx.drawImage(baseCanvas, 0, 0, targetSize.width, targetSize.height);
-  const imageData = ctx.getImageData(0, 0, targetSize.width, targetSize.height);
-  return { canvas: resizedCanvas, imageData };
-}
-
-function computeStatistics(values) {
-  let sum = 0;
-  for (let i = 0; i < values.length; i++) {
-    sum += values[i];
-  }
-  const mean = sum / values.length;
-  let varianceSum = 0;
-  for (let i = 0; i < values.length; i++) {
-    const diff = values[i] - mean;
-    varianceSum += diff * diff;
-  }
-  return { mean, std: Math.sqrt(varianceSum / values.length) };
-}
-
-function samplePercentile(values, percentile) {
-  const step = Math.max(1, Math.floor(values.length / 10000));
-  const sample = [];
-  for (let i = 0; i < values.length; i += step) {
-    sample.push(values[i]);
-  }
-  sample.sort((a, b) => a - b);
-  const index = Math.min(sample.length - 1, Math.max(0, Math.floor(percentile * (sample.length - 1))));
-  return sample[index] || 0;
-}
-
-function computeMetrics(imageData) {
-  const { width, height, data } = imageData;
-  const pixelCount = width * height;
-  const grayscale = new Float32Array(pixelCount);
-  const gradX = new Float32Array(pixelCount);
-  const gradY = new Float32Array(pixelCount);
-  const gradient = new Float32Array(pixelCount);
-
-  const colorBalance = { r: 0, g: 0, b: 0 };
-
-  for (let i = 0; i < pixelCount; i++) {
-    const idx = i * 4;
-    const r = data[idx];
-    const g = data[idx + 1];
-    const b = data[idx + 2];
-    colorBalance.r += r;
-    colorBalance.g += g;
-    colorBalance.b += b;
-    grayscale[i] = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-  }
-
-  colorBalance.r /= pixelCount;
-  colorBalance.g /= pixelCount;
-  colorBalance.b /= pixelCount;
-
-  for (let y = 1; y < height - 1; y++) {
-    for (let x = 1; x < width - 1; x++) {
-      const idx = y * width + x;
-      const gx =
-        -grayscale[idx - width - 1] - 2 * grayscale[idx - 1] - grayscale[idx + width - 1] +
-        grayscale[idx - width + 1] + 2 * grayscale[idx + 1] + grayscale[idx + width + 1];
-      const gy =
-        -grayscale[idx - width - 1] - 2 * grayscale[idx - width] - grayscale[idx - width + 1] +
-        grayscale[idx + width - 1] + 2 * grayscale[idx + width] + grayscale[idx + width + 1];
-      gradX[idx] = gx;
-      gradY[idx] = gy;
-      gradient[idx] = Math.hypot(gx, gy);
-    }
-  }
-
-  const stats = computeStatistics(grayscale);
-  const gradientThreshold = samplePercentile(gradient, 0.9);
-  const horizonThreshold = samplePercentile(gradient, 0.85);
-
-  let minX = width;
-  let minY = height;
-  let maxX = 0;
-  let maxY = 0;
-  let sumX = 0;
-  let sumY = 0;
-  let strongCount = 0;
-
-  let horizonAngle = 0;
-  let horizonWeight = 0;
-
-  for (let y = 1; y < height - 1; y++) {
-    for (let x = 1; x < width - 1; x++) {
-      const idx = y * width + x;
-      const magnitude = gradient[idx];
-      if (magnitude > gradientThreshold) {
-        if (x < minX) minX = x;
-        if (x > maxX) maxX = x;
-        if (y < minY) minY = y;
-        if (y > maxY) maxY = y;
-        sumX += x;
-        sumY += y;
-        strongCount++;
-      }
-      if (magnitude > horizonThreshold && y > height * 0.25 && y < height * 0.75) {
-        const gx = gradX[idx];
-        const gy = gradY[idx];
-        const angle = ((Math.atan2(gy, gx) * 180) / Math.PI) + 90;
-        const normalized = ((angle + 180) % 180) - 90;
-        horizonAngle += normalized * magnitude;
-        horizonWeight += magnitude;
-      }
-    }
-  }
-
-  const metrics = {
-    imageSize: { width, height },
-    subjectRect: null,
-    subjectCenter: { x: width / 2, y: height / 2 },
-    subjectOffset: { x: 0, y: 0 },
-    subjectSize: 0,
-    horizonAngle: horizonWeight ? horizonAngle / horizonWeight : 0,
-    horizonLine: null,
-    ruleOfThirdsScore: 0,
-    sharpnessVariance: 0,
-    exposure: stats.mean,
-    contrast: stats.std,
-    saturation: 0,
-    colorBalance,
-    foregroundBackground: 0,
-    feedback: []
-  };
-
-  if (strongCount > 50) {
-    const widthRect = maxX - minX;
-    const heightRect = maxY - minY;
-    metrics.subjectRect = {
-      x: Math.max(0, minX - 4),
-      y: Math.max(0, minY - 4),
-      width: Math.min(width, widthRect + 8),
-      height: Math.min(height, heightRect + 8)
-    };
-    metrics.subjectCenter = {
-      x: sumX / strongCount,
-      y: sumY / strongCount
-    };
-    metrics.subjectOffset = {
-      x: metrics.subjectCenter.x / width - 0.5,
-      y: metrics.subjectCenter.y / height - 0.5
-    };
-    metrics.subjectSize = (widthRect * heightRect) / (width * height);
-  }
-
-  const thirdsX = [width / 3, (2 * width) / 3];
-  const thirdsY = [height / 3, (2 * height) / 3];
-  const nearestX = Math.min(...thirdsX.map(x => Math.abs(metrics.subjectCenter.x - x)));
-  const nearestY = Math.min(...thirdsY.map(y => Math.abs(metrics.subjectCenter.y - y)));
-  metrics.ruleOfThirdsScore = 1 - (nearestX / width + nearestY / height);
-
-  let sharpnessAccumulator = 0;
-  for (let i = 0; i < gradient.length; i++) {
-    sharpnessAccumulator += gradient[i] * gradient[i];
-  }
-  metrics.sharpnessVariance = sharpnessAccumulator / gradient.length;
-
-  let saturationSum = 0;
-  for (let i = 0; i < pixelCount; i++) {
-    const idx = i * 4;
-    const r = data[idx] / 255;
-    const g = data[idx + 1] / 255;
-    const b = data[idx + 2] / 255;
-    const max = Math.max(r, g, b);
-    const min = Math.min(r, g, b);
-    saturationSum += max - min;
-  }
-  metrics.saturation = (saturationSum / pixelCount) * 255;
-
-  const half = Math.floor(height / 2);
-  let topSum = 0;
-  let bottomSum = 0;
-  for (let y = 0; y < half; y++) {
-    for (let x = 0; x < width; x++) {
-      topSum += grayscale[y * width + x];
-    }
-  }
-  for (let y = half; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      bottomSum += grayscale[y * width + x];
-    }
-  }
-  const topMean = topSum / (half * width);
-  const bottomMean = bottomSum / (Math.max(1, height - half) * width);
-  metrics.foregroundBackground = bottomMean / Math.max(1, topMean);
-
-  const center = { x: width / 2, y: height / 2 };
-  const angleRad = (metrics.horizonAngle * Math.PI) / 180;
-  const lengthLine = Math.max(width, height);
-  const dx = Math.cos(angleRad) * lengthLine;
-  const dy = Math.sin(angleRad) * lengthLine;
-  metrics.horizonLine = [
-    { x: center.x - dx / 2, y: center.y - dy / 2 },
-    { x: center.x + dx / 2, y: center.y + dy / 2 }
-  ];
-
-  const feedback = new Set();
-  if (Math.abs(metrics.horizonAngle) > 1.5) {
-    feedback.add('feedback_rotation');
-  }
-  if (metrics.subjectRect && metrics.ruleOfThirdsScore < 0.6) {
-    feedback.add('feedback_crop');
-  }
-  if (metrics.exposure < 105) {
-    feedback.add('feedback_exposure');
-  } else if (metrics.exposure > 160) {
-    feedback.add('feedback_balance');
-  }
-  if (metrics.contrast < 45) {
-    feedback.add('feedback_contrast');
-  }
-  if (metrics.saturation < 50) {
-    feedback.add('feedback_saturation');
-  }
-  if (metrics.sharpnessVariance < 120) {
-    feedback.add('feedback_sharpness');
-  }
-  if (metrics.foregroundBackground < 0.8 || metrics.foregroundBackground > 1.2) {
-    feedback.add('feedback_balance');
-  }
-  if (feedback.size === 0) {
-    feedback.add('feedback_good');
-  }
-  metrics.feedback = Array.from(feedback);
-
-  return metrics;
-}
-
-function improveImage(baseCanvas, metrics) {
-  const width = baseCanvas.width;
-  const height = baseCanvas.height;
-
-  const cropWidth = Math.round(width * 0.9);
-  const cropHeight = Math.round(height * 0.9);
-
-  let desiredX = cropWidth / 2;
-  let desiredY = cropHeight / 2;
-  if (metrics.subjectRect) {
-    desiredX = metrics.subjectCenter.x < width / 2 ? cropWidth / 3 : (2 * cropWidth) / 3;
-    desiredY = metrics.subjectCenter.y < height / 2 ? cropHeight / 3 : (2 * cropHeight) / 3;
-  }
-
-  let cropX = Math.round((metrics.subjectCenter.x || width / 2) - desiredX);
-  let cropY = Math.round((metrics.subjectCenter.y || height / 2) - desiredY);
-
-  cropX = Math.max(0, Math.min(width - cropWidth, cropX));
-  cropY = Math.max(0, Math.min(height - cropHeight, cropY));
-
-  const cropCanvas = document.createElement('canvas');
-  cropCanvas.width = cropWidth;
-  cropCanvas.height = cropHeight;
-  const cropCtx = cropCanvas.getContext('2d');
-  cropCtx.drawImage(baseCanvas, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
-
-  const rotation = (-metrics.horizonAngle * Math.PI) / 180;
-  const cos = Math.cos(rotation);
-  const sin = Math.sin(rotation);
-  const rotatedWidth = Math.round(Math.abs(cos) * cropWidth + Math.abs(sin) * cropHeight);
-  const rotatedHeight = Math.round(Math.abs(sin) * cropWidth + Math.abs(cos) * cropHeight);
-  const rotatedCanvas = document.createElement('canvas');
-  rotatedCanvas.width = rotatedWidth;
-  rotatedCanvas.height = rotatedHeight;
-  const rotatedCtx = rotatedCanvas.getContext('2d');
-  rotatedCtx.translate(rotatedWidth / 2, rotatedHeight / 2);
-  rotatedCtx.rotate(rotation);
-  rotatedCtx.drawImage(cropCanvas, -cropWidth / 2, -cropHeight / 2);
-
-  const finalCanvas = document.createElement('canvas');
-  finalCanvas.width = cropWidth;
-  finalCanvas.height = cropHeight;
-  const finalCtx = finalCanvas.getContext('2d');
-
-  const brightness = metrics.exposure < 110 ? 1.1 : metrics.exposure > 160 ? 0.95 : 1;
-  const contrast = metrics.contrast < 45 ? 1.05 : metrics.contrast > 80 ? 0.95 : 1;
-  const saturation = metrics.saturation < 50 ? 1.12 : metrics.saturation > 160 ? 0.92 : 1;
-  finalCtx.filter = `brightness(${brightness}) contrast(${contrast}) saturate(${saturation})`;
-
-  const offsetX = (rotatedWidth - cropWidth) / 2;
-  const offsetY = (rotatedHeight - cropHeight) / 2;
-  finalCtx.drawImage(rotatedCanvas, offsetX, offsetY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
-
-  return finalCanvas;
-}
-
-async function processFile(file) {
-  setLoading(true);
-  downloadButton.disabled = true;
-  try {
-    const { canvas, imageData } = await readImageFile(file);
-    lastOriginalCanvas = canvas;
-    currentMetrics = computeMetrics(imageData);
-    renderMetrics(currentMetrics);
-    updateAnalysisSummary(currentMetrics);
-
-    renderToCanvas(originalCanvas, lastOriginalCanvas, {
-      showGuides: toggleGrid.checked,
-      metrics: currentMetrics,
-      includeAnnotations: true
-    });
-    setCanvasMeta(originalMeta, lastOriginalCanvas);
-
-    lastImprovedCanvas = improveImage(lastOriginalCanvas, currentMetrics);
-    renderToCanvas(improvedCanvas, lastImprovedCanvas, {
-      showGuides: toggleGrid.checked,
-      metrics: currentMetrics,
-      includeAnnotations: false
-    });
-    setCanvasMeta(improvedMeta, lastImprovedCanvas);
-
-    await prepareDownload(lastImprovedCanvas);
-  } catch (error) {
-    console.error(error);
-    showError('error_processing', 'Unable to process this file. Please try another image.');
-  } finally {
-    setLoading(false);
-  }
-}
-
-function handleFileInput(event) {
-  const file = event.target.files?.[0];
-  if (file) {
-    processFile(file);
-  }
-}
-
-function handleDrop(event) {
-  event.preventDefault();
-  dropZone.classList.remove('dragover');
-  const file = event.dataTransfer.files?.[0];
-  if (file) {
-    processFile(file);
-  }
-}
-
-function handleDrag(event) {
-  event.preventDefault();
-  if (event.type === 'dragover') {
-    dropZone.classList.add('dragover');
-  } else {
-    dropZone.classList.remove('dragover');
-  }
-}
-
-function initEventListeners() {
-  uploadButton.addEventListener('click', () => fileInput.click());
-  fileInput.addEventListener('change', handleFileInput);
-  dropZone.addEventListener('click', () => fileInput.click());
-  dropZone.addEventListener('keydown', event => {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      fileInput.click();
-    }
-  });
-  dropZone.addEventListener('dragover', handleDrag);
-  dropZone.addEventListener('dragleave', handleDrag);
-  dropZone.addEventListener('drop', handleDrop);
-  toggleGrid.addEventListener('change', refreshCanvases);
-  resetButton.addEventListener('click', resetInterface);
-  downloadButton.addEventListener('click', () => {
-    if (!currentDownloadUrl) return;
-    const a = document.createElement('a');
-    a.href = currentDownloadUrl;
-    a.download = downloadButton.dataset.filename || 'improved-photo.png';
-    a.click();
-  });
-  langToggleButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      if (btn.dataset.lang !== currentLang) {
-        currentLang = btn.dataset.lang;
-        translatePage();
-        refreshCanvases();
-      }
-    });
-  });
-}
-
-async function loadDictionaries() {
-  const langs = Object.keys(fallbackDictionaries);
-  await Promise.all(
-    langs.map(async lang => {
-      try {
-        const response = await fetch(`translations/${lang}.json`, { cache: 'no-store' });
-        if (!response.ok) {
-          throw new Error(`Failed to load dictionary for ${lang}`);
-        }
-        const data = await response.json();
-        dictionaries[lang] = { ...dictionaries[lang], ...data };
-      } catch (error) {
-        console.warn('Dictionary load failed', error);
-        if (!dictionaryWarningShown) {
-          showError('error_dictionary', 'Using built-in language defaults. Some translations may be missing.');
-          dictionaryWarningShown = true;
-        }
-      }
-    })
-  );
-  translatePage();
-}
-
-async function init() {
-  dictionaries = cloneFallback();
-  downloadButton.disabled = true;
-  translatePage();
-  initEventListeners();
-  try {
-    await loadDictionaries();
-  } catch (error) {
-    console.warn('Unable to refresh dictionaries', error);
-  }
-  engineStatusState = 'ready';
-  updateStatusBadge();
-}
-
-init();
-
-window.addEventListener('beforeunload', () => {
-  cleanupCanvases();
-  revokeDownloadUrl();
-});
++const MAX_DIMENSION = 2048;
++const metricsContainer = document.getElementById('metrics');
++const originalCanvas = document.getElementById('original-canvas');
++const improvedCanvas = document.getElementById('improved-canvas');
++const originalMeta = document.getElementById('original-meta');
++const improvedMeta = document.getElementById('improved-meta');
++const downloadButton = document.getElementById('download-button');
++const toggleGrid = document.getElementById('toggle-grid');
++const resetButton = document.getElementById('reset-button');
++const dropZone = document.getElementById('drop-zone');
++const fileInput = document.getElementById('file-input');
++const uploadButton = document.getElementById('upload-button');
++const loadingIndicator = document.getElementById('loading-indicator');
++const metricTemplate = document.getElementById('metric-template');
++const langToggleButtons = document.querySelectorAll('.lang-toggle button');
++const analysisSummary = document.getElementById('analysis-summary');
++const engineStatus = document.getElementById('engine-status');
++const errorToast = document.getElementById('error-toast');
++
++let dictionaries = {};
++let currentLang = 'en-US';
++let currentMetrics = null;
++let currentDownloadUrl = null;
++let lastOriginalMat = null;
++let lastImprovedMat = null;
++let engineStatusState = 'loading';
++let errorTimeoutId = null;
++
++let cvReadyResolver;
++let cvReadyResolved = false;
++const cvReady = new Promise(resolve => {
++  cvReadyResolver = () => {
++    if (!cvReadyResolved) {
++      cvReadyResolved = true;
++      resolve();
++    }
++  };
++});
++
++(function ensureCvReady() {
++  if (typeof cv !== 'undefined') {
++    if (cv.Mat) {
++      cvReadyResolver();
++    } else {
++      cv.onRuntimeInitialized = () => cvReadyResolver();
++    }
++  } else {
++    const timer = setInterval(() => {
++      if (typeof cv !== 'undefined') {
++        clearInterval(timer);
++        if (cv.Mat) {
++          cvReadyResolver();
++        } else {
++          cv.onRuntimeInitialized = () => cvReadyResolver();
++        }
++      }
++    }, 50);
++  }
++})();
++
++const formatters = {
++  percent: value => `${Math.round(value * 100)}%`,
++  degrees: value => `${value.toFixed(1)}°`,
++  score: value => value.toFixed(2),
++  numeric: value => value.toFixed(1)
++};
++
++async function loadDictionaries() {
++  const langs = ['en-US', 'zh-TW'];
++  for (const lang of langs) {
++    const response = await fetch(`translations/${lang}.json`);
++    if (!response.ok) {
++      throw new Error(`Failed to load dictionary for ${lang}`);
++    }
++    dictionaries[lang] = await response.json();
++  }
++}
++
++function updateStatusBadge() {
++  if (!engineStatus) return;
++  const dict = dictionaries[currentLang] || {};
++  engineStatus.classList.remove('ready', 'error');
++  let key = 'engine_loading';
++  if (engineStatusState === 'ready') {
++    key = 'engine_ready';
++    engineStatus.classList.add('ready');
++  } else if (engineStatusState === 'error') {
++    key = 'engine_error';
++    engineStatus.classList.add('error');
++  }
++  engineStatus.textContent = dict[key] || engineStatus.textContent;
++}
++
++function setLoading(isLoading) {
++  loadingIndicator.hidden = !isLoading;
++  dropZone.setAttribute('aria-busy', String(isLoading));
++  dropZone.classList.toggle('processing', isLoading);
++}
++
++function setCanvasMeta(element, mat) {
++  if (!element) return;
++  if (!mat) {
++    element.textContent = '';
++    return;
++  }
++  const dict = dictionaries[currentLang] || {};
++  const template = dict['meta_dimensions'] || '{{width}}×{{height}} px';
++  element.textContent = template.replace('{{width}}', mat.cols).replace('{{height}}', mat.rows);
++}
++
++function renderMetrics(metrics) {
++  const dict = dictionaries[currentLang];
++  metricsContainer.innerHTML = '';
++  const entries = [
++    ['metric_main_subject', `${formatters.percent(Math.max(0, 0.5 - Math.abs(metrics.subjectOffset.x)))} / ${formatters.percent(Math.max(0, 0.5 - Math.abs(metrics.subjectOffset.y)))}`],
++    ['metric_horizon', formatters.degrees(metrics.horizonAngle)],
++    ['metric_rule_of_thirds', formatters.score(metrics.ruleOfThirdsScore)],
++    ['metric_sharpness', formatters.numeric(metrics.sharpnessVariance)],
++    ['metric_exposure', formatters.numeric(metrics.exposure)],
++    ['metric_contrast', formatters.numeric(metrics.contrast)],
++    ['metric_saturation', formatters.numeric(metrics.saturation)],
++    ['metric_color_balance', `${metrics.colorBalance.r.toFixed(0)} / ${metrics.colorBalance.g.toFixed(0)} / ${metrics.colorBalance.b.toFixed(0)}`],
++    ['metric_foreground_background', formatters.score(metrics.foregroundBackground)],
++    ['metric_subject_size', formatters.percent(metrics.subjectSize)]
++  ];
++
++  for (const [labelKey, value] of entries) {
++    const fragment = metricTemplate.content.cloneNode(true);
++    fragment.querySelector('.metric-label').textContent = dict[labelKey] || labelKey;
++    fragment.querySelector('.metric-value').textContent = value;
++    metricsContainer.appendChild(fragment);
++  }
++
++  const feedbackWrap = document.createElement('div');
++  feedbackWrap.className = 'metric';
++  const label = document.createElement('span');
++  label.className = 'metric-label';
++  label.textContent = dict['metric_feedback'];
++  const valueSpan = document.createElement('span');
++  valueSpan.className = 'metric-value';
++  valueSpan.innerHTML = metrics.feedback.map(key => dict[key] || key).join('<br>');
++  feedbackWrap.append(label, valueSpan);
++  metricsContainer.appendChild(feedbackWrap);
++}
++
++function updateAnalysisSummary(metrics) {
++  const dict = dictionaries[currentLang];
++  if (!analysisSummary) return;
++  if (!metrics) {
++    analysisSummary.innerHTML = dict['analysis_summary_default'] || '';
++    return;
++  }
++
++  const segments = [];
++  if (!metrics.subjectRect) {
++    segments.push(dict['summary_subject_missing']);
++  } else {
++    const offset = Math.max(Math.abs(metrics.subjectOffset.x), Math.abs(metrics.subjectOffset.y));
++    if (offset < 0.12) {
++      segments.push(dict['summary_subject_centered']);
++    } else {
++      segments.push(dict['summary_subject_off_center']);
++    }
++  }
++
++  if (Math.abs(metrics.horizonAngle) <= 1) {
++    segments.push(dict['summary_horizon_level']);
++  } else {
++    const template = dict['summary_horizon_tilted'] || '';
++    segments.push(template.replace('{{angle}}', formatters.degrees(Math.abs(metrics.horizonAngle))));
++  }
++
++  if (metrics.exposure < 110) {
++    segments.push(dict['summary_exposure_dark']);
++  } else if (metrics.exposure > 150) {
++    segments.push(dict['summary_exposure_bright']);
++  } else {
++    segments.push(dict['summary_exposure_balanced']);
++  }
++
++  if (metrics.foregroundBackground > 1.2) {
++    segments.push(dict['summary_balance_foreground']);
++  } else if (metrics.foregroundBackground < 0.8) {
++    segments.push(dict['summary_balance_background']);
++  } else {
++    segments.push(dict['summary_balance_even']);
++  }
++
++  if (metrics.sharpnessVariance < 120) {
++    segments.push(dict['summary_sharpness_soft']);
++  }
++
++  analysisSummary.innerHTML = segments.filter(Boolean).join(' ');
++}
++
++function translatePage() {
++  const dict = dictionaries[currentLang];
++  document.documentElement.lang = currentLang;
++  document.querySelectorAll('[data-i18n]').forEach(el => {
++    const key = el.getAttribute('data-i18n');
++    if (dict[key]) {
++      el.textContent = dict[key];
++    }
++  });
++  langToggleButtons.forEach(btn => {
++    btn.classList.toggle('active', btn.dataset.lang === currentLang);
++  });
++  if (currentMetrics) {
++    renderMetrics(currentMetrics);
++  }
++  updateAnalysisSummary(currentMetrics);
++  setCanvasMeta(originalMeta, lastOriginalMat);
++  setCanvasMeta(improvedMeta, lastImprovedMat);
++  updateStatusBadge();
++}
++
++function drawGuides(canvas, metrics, options = {}) {
++  const { showGuides = true, includeAnnotations = true } = options;
++  if (!showGuides) return;
++  const ctx = canvas.getContext('2d');
++  const w = canvas.width;
++  const h = canvas.height;
++  ctx.save();
++  ctx.lineWidth = 1.1;
++  ctx.strokeStyle = 'rgba(91, 192, 255, 0.5)';
++  ctx.setLineDash([6, 6]);
++  for (let i = 1; i <= 2; i++) {
++    const x = (w * i) / 3;
++    ctx.beginPath();
++    ctx.moveTo(x, 0);
++    ctx.lineTo(x, h);
++    ctx.stroke();
++    const y = (h * i) / 3;
++    ctx.beginPath();
++    ctx.moveTo(0, y);
++    ctx.lineTo(w, y);
++    ctx.stroke();
++  }
++  ctx.setLineDash([]);
++  if (includeAnnotations && metrics && metrics.subjectRect) {
++    const scaleX = w / metrics.imageSize.width;
++    const scaleY = h / metrics.imageSize.height;
++    ctx.strokeStyle = 'rgba(244, 114, 182, 0.75)';
++    ctx.lineWidth = 1.4;
++    ctx.strokeRect(
++      metrics.subjectRect.x * scaleX,
++      metrics.subjectRect.y * scaleY,
++      metrics.subjectRect.width * scaleX,
++      metrics.subjectRect.height * scaleY
++    );
++  }
++  if (includeAnnotations && metrics && metrics.horizonLine) {
++    const scaleX = w / metrics.imageSize.width;
++    const scaleY = h / metrics.imageSize.height;
++    ctx.strokeStyle = 'rgba(94, 234, 212, 0.75)';
++    ctx.lineWidth = 1.2;
++    ctx.beginPath();
++    ctx.moveTo(metrics.horizonLine[0].x * scaleX, metrics.horizonLine[0].y * scaleY);
++    ctx.lineTo(metrics.horizonLine[1].x * scaleX, metrics.horizonLine[1].y * scaleY);
++    ctx.stroke();
++  }
++  ctx.restore();
++}
++
++function showError(messageKey, fallback) {
++  if (!errorToast) return;
++  const dict = dictionaries[currentLang] || {};
++  errorToast.textContent = dict[messageKey] || fallback || 'Something went wrong.';
++  errorToast.hidden = false;
++  clearTimeout(errorTimeoutId);
++  errorTimeoutId = setTimeout(() => {
++    errorToast.hidden = true;
++  }, 4000);
++}
++
++function cleanupMats() {
++  if (lastOriginalMat) {
++    lastOriginalMat.delete();
++    lastOriginalMat = null;
++  }
++  if (lastImprovedMat) {
++    lastImprovedMat.delete();
++    lastImprovedMat = null;
++  }
++}
++
++function resetInterface() {
++  cleanupMats();
++  currentMetrics = null;
++  metricsContainer.innerHTML = '';
++  analysisSummary.innerHTML = dictionaries[currentLang]['analysis_summary_default'] || '';
++  const originalCtx = originalCanvas.getContext('2d');
++  originalCtx.clearRect(0, 0, originalCanvas.width, originalCanvas.height);
++  const improvedCtx = improvedCanvas.getContext('2d');
++  improvedCtx.clearRect(0, 0, improvedCanvas.width, improvedCanvas.height);
++  setCanvasMeta(originalMeta, null);
++  setCanvasMeta(improvedMeta, null);
++  downloadButton.disabled = true;
++  revokeDownloadUrl();
++}
++
++function revokeDownloadUrl() {
++  if (currentDownloadUrl) {
++    URL.revokeObjectURL(currentDownloadUrl);
++    currentDownloadUrl = null;
++  }
++}
++
++async function prepareDownload(mat) {
++  revokeDownloadUrl();
++  const offscreen = document.createElement('canvas');
++  offscreen.width = mat.cols;
++  offscreen.height = mat.rows;
++  cv.imshow(offscreen, mat);
++  await new Promise(resolve => {
++    offscreen.toBlob(blob => {
++      const dict = dictionaries[currentLang];
++      const name = dict['metric_download_name'] || 'improved-photo';
++      if (blob) {
++        currentDownloadUrl = URL.createObjectURL(blob);
++        downloadButton.disabled = false;
++        downloadButton.dataset.filename = `${name}.png`;
++      } else {
++        downloadButton.disabled = true;
++      }
++      resolve();
++    }, 'image/png');
++  });
++}
++
++function renderToCanvas(canvas, mat, options = {}) {
++  canvas.width = mat.cols;
++  canvas.height = mat.rows;
++  cv.imshow(canvas, mat);
++  drawGuides(canvas, options.metrics, {
++    showGuides: options.showGuides,
++    includeAnnotations: options.includeAnnotations
++  });
++}
++
++function refreshCanvases() {
++  if (!currentMetrics) return;
++  if (lastOriginalMat) {
++    renderToCanvas(originalCanvas, lastOriginalMat, {
++      showGuides: toggleGrid.checked,
++      metrics: currentMetrics,
++      includeAnnotations: true
++    });
++    setCanvasMeta(originalMeta, lastOriginalMat);
++  }
++  if (lastImprovedMat) {
++    renderToCanvas(improvedCanvas, lastImprovedMat, {
++      showGuides: toggleGrid.checked,
++      metrics: currentMetrics,
++      includeAnnotations: false
++    });
++    setCanvasMeta(improvedMeta, lastImprovedMat);
++  }
++}
++
++async function safeCreateImageBitmap(file) {
++  if ('createImageBitmap' in window) {
++    try {
++      return await createImageBitmap(file, { imageOrientation: 'from-image' });
++    } catch (error) {
++      console.warn('createImageBitmap failed, falling back to Image()', error);
++    }
++  }
++  return new Promise((resolve, reject) => {
++    const reader = new FileReader();
++    reader.onerror = () => reject(reader.error);
++    reader.onload = () => {
++      const img = new Image();
++      img.onload = () => resolve(img);
++      img.onerror = () => reject(new Error('Image load error'));
++      img.src = reader.result;
++    };
++    reader.readAsDataURL(file);
++  });
++}
++
++async function readImageFile(file) {
++  const bitmap = await safeCreateImageBitmap(file);
++  const widthSource = bitmap.width || bitmap.naturalWidth;
++  const heightSource = bitmap.height || bitmap.naturalHeight;
++  const { width, height } = scaleDimensions(widthSource, heightSource, MAX_DIMENSION);
++  const canvas = document.createElement('canvas');
++  canvas.width = width;
++  canvas.height = height;
++  const ctx = canvas.getContext('2d');
++  ctx.drawImage(bitmap, 0, 0, width, height);
++  if (typeof bitmap.close === 'function') {
++    bitmap.close();
++  }
++  return canvas;
++}
++
++function scaleDimensions(width, height, maxSize) {
++  if (Math.max(width, height) <= maxSize) {
++    return { width, height };
++  }
++  const ratio = width / height;
++  if (ratio > 1) {
++    return { width: maxSize, height: Math.round(maxSize / ratio) };
++  }
++  return { width: Math.round(maxSize * ratio), height: maxSize };
++}
++
++function computeMetrics(src) {
++  const metrics = {
++    imageSize: { width: src.cols, height: src.rows },
++    subjectRect: null,
++    subjectCenter: { x: src.cols / 2, y: src.rows / 2 },
++    subjectOffset: { x: 0, y: 0 },
++    subjectSize: 0,
++    horizonAngle: 0,
++    horizonLine: null,
++    ruleOfThirdsScore: 0,
++    sharpnessVariance: 0,
++    exposure: 0,
++    contrast: 0,
++    saturation: 0,
++    colorBalance: { r: 0, g: 0, b: 0 },
++    foregroundBackground: 0,
++    feedback: []
++  };
++
++  const gray = new cv.Mat();
++  cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
++
++  const blur = new cv.Mat();
++  cv.GaussianBlur(gray, blur, new cv.Size(5, 5), 0);
++
++  const edges = new cv.Mat();
++  cv.Canny(blur, edges, 60, 150, 3, false);
++
++  const lap = new cv.Mat();
++  cv.Laplacian(gray, lap, cv.CV_64F);
++  const lapMean = new cv.Mat();
++  const lapStd = new cv.Mat();
++  cv.meanStdDev(lap, lapMean, lapStd);
++  metrics.sharpnessVariance = lapStd.doubleAt(0, 0) ** 2;
++
++  const contours = new cv.MatVector();
++  const hierarchy = new cv.Mat();
++  cv.findContours(edges, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
++  let maxArea = 0;
++  for (let i = 0; i < contours.size(); i++) {
++    const contour = contours.get(i);
++    const rect = cv.boundingRect(contour);
++    const area = rect.width * rect.height;
++    if (area > maxArea) {
++      maxArea = area;
++      metrics.subjectRect = rect;
++    }
++    contour.delete();
++  }
++  if (metrics.subjectRect) {
++    metrics.subjectCenter = {
++      x: metrics.subjectRect.x + metrics.subjectRect.width / 2,
++      y: metrics.subjectRect.y + metrics.subjectRect.height / 2
++    };
++    metrics.subjectSize = maxArea / (src.cols * src.rows);
++    metrics.subjectOffset = {
++      x: metrics.subjectCenter.x / src.cols - 0.5,
++      y: metrics.subjectCenter.y / src.rows - 0.5
++    };
++  }
++
++  const thirdsX = [src.cols / 3, (2 * src.cols) / 3];
++  const thirdsY = [src.rows / 3, (2 * src.rows) / 3];
++  const nearestX = Math.min(...thirdsX.map(x => Math.abs(metrics.subjectCenter.x - x)));
++  const nearestY = Math.min(...thirdsY.map(y => Math.abs(metrics.subjectCenter.y - y)));
++  metrics.ruleOfThirdsScore = 1 - (nearestX / src.cols + nearestY / src.rows);
++
++  const lines = new cv.Mat();
++  cv.HoughLinesP(edges, lines, 1, Math.PI / 180, 60, src.cols * 0.3, 30);
++  let bestAngle = 0;
++  let bestLine = null;
++  for (let i = 0; i < lines.rows; i++) {
++    const [x1, y1, x2, y2] = lines.data32S.slice(i * 4, i * 4 + 4);
++    const angle = (Math.atan2(y2 - y1, x2 - x1) * 180) / Math.PI;
++    const normalized = ((angle + 180) % 180) - 90;
++    if (bestLine === null || Math.abs(normalized) < Math.abs(bestAngle)) {
++      bestAngle = normalized;
++      bestLine = [
++        { x: x1, y: y1 },
++        { x: x2, y: y2 }
++      ];
++    }
++  }
++  metrics.horizonAngle = bestAngle;
++  metrics.horizonLine = bestLine;
++
++  const meanMat = new cv.Mat();
++  const stdMat = new cv.Mat();
++  cv.meanStdDev(gray, meanMat, stdMat);
++  metrics.exposure = meanMat.doubleAt(0, 0);
++  metrics.contrast = stdMat.doubleAt(0, 0);
++
++  const rgb = new cv.Mat();
++  cv.cvtColor(src, rgb, cv.COLOR_RGBA2RGB);
++  const hsv = new cv.Mat();
++  cv.cvtColor(rgb, hsv, cv.COLOR_RGB2HSV);
++  const hsvPlanes = new cv.MatVector();
++  cv.split(hsv, hsvPlanes);
++  metrics.saturation = cv.mean(hsvPlanes.get(1))[0];
++
++  const colorPlanes = new cv.MatVector();
++  cv.split(rgb, colorPlanes);
++  metrics.colorBalance = {
++    r: cv.mean(colorPlanes.get(0))[0],
++    g: cv.mean(colorPlanes.get(1))[0],
++    b: cv.mean(colorPlanes.get(2))[0]
++  };
++
++  const half = Math.max(1, Math.floor(src.rows / 2));
++  const topGray = gray.roi(new cv.Rect(0, 0, src.cols, half));
++  const bottomGray = gray.roi(new cv.Rect(0, src.rows - half, src.cols, half));
++  const topLap = new cv.Mat();
++  const bottomLap = new cv.Mat();
++  cv.Laplacian(topGray, topLap, cv.CV_64F);
++  cv.Laplacian(bottomGray, bottomLap, cv.CV_64F);
++  const topStd = new cv.Mat();
++  const topMean = new cv.Mat();
++  const bottomStd = new cv.Mat();
++  const bottomMean = new cv.Mat();
++  cv.meanStdDev(topLap, topMean, topStd);
++  cv.meanStdDev(bottomLap, bottomMean, bottomStd);
++  const foregroundVar = bottomStd.doubleAt(0, 0) ** 2;
++  const backgroundVar = topStd.doubleAt(0, 0) ** 2;
++  metrics.foregroundBackground = foregroundVar / (backgroundVar + 1e-6);
++
++  const feedback = [];
++  if (Math.abs(metrics.horizonAngle) > 2) {
++    feedback.push('feedback_rotation');
++  }
++  if (Math.abs(metrics.subjectOffset.x) > 0.15 || Math.abs(metrics.subjectOffset.y) > 0.15) {
++    feedback.push('feedback_crop');
++  }
++  if (metrics.exposure < 105 || metrics.exposure > 160) {
++    feedback.push('feedback_exposure');
++  }
++  if (metrics.contrast < 40) {
++    feedback.push('feedback_contrast');
++  }
++  if (metrics.saturation < 85) {
++    feedback.push('feedback_saturation');
++  }
++  if (metrics.sharpnessVariance < 150) {
++    feedback.push('feedback_sharpness');
++  }
++  if (metrics.foregroundBackground < 0.8 || metrics.foregroundBackground > 1.4) {
++    feedback.push('feedback_balance');
++  }
++  if (!feedback.length) {
++    feedback.push('feedback_good');
++  }
++  metrics.feedback = feedback;
++
++  gray.delete();
++  blur.delete();
++  edges.delete();
++  lap.delete();
++  lapMean.delete();
++  lapStd.delete();
++  contours.delete();
++  hierarchy.delete();
++  lines.delete();
++  meanMat.delete();
++  stdMat.delete();
++  rgb.delete();
++  hsv.delete();
++  hsvPlanes.delete();
++  colorPlanes.delete();
++  topGray.delete();
++  bottomGray.delete();
++  topLap.delete();
++  bottomLap.delete();
++  topStd.delete();
++  topMean.delete();
++  bottomStd.delete();
++  bottomMean.delete();
++
++  return metrics;
++}
++
++function rotatePoint(x, y, mat) {
++  const m = mat.data64F || mat.data32F;
++  const nx = m[0] * x + m[1] * y + m[2];
++  const ny = m[3] * x + m[4] * y + m[5];
++  return { x: nx, y: ny };
++}
++
++function improveImage(src, metrics) {
++  const base = new cv.Mat();
++  src.copyTo(base);
++
++  let rotated = new cv.Mat();
++  let transform = null;
++  if (Math.abs(metrics.horizonAngle) > 0.5) {
++    const center = new cv.Point(base.cols / 2, base.rows / 2);
++    transform = cv.getRotationMatrix2D(center, metrics.horizonAngle, 1);
++    const bounds = new cv.Size(base.cols, base.rows);
++    cv.warpAffine(base, rotated, transform, bounds, cv.INTER_LINEAR, cv.BORDER_REFLECT);
++  } else {
++    rotated = base.clone();
++  }
++
++  const subject = metrics.subjectCenter;
++  let rotatedSubject = subject;
++  if (transform) {
++    rotatedSubject = rotatePoint(subject.x, subject.y, transform);
++    transform.delete();
++  }
++
++  const scale = metrics.subjectSize < 0.15 ? 0.8 : metrics.subjectSize > 0.45 ? 1.0 : 0.88;
++  const cropWidth = Math.max(1, Math.round(rotated.cols * scale));
++  const cropHeight = Math.max(1, Math.round(rotated.rows * scale));
++  const targetX = rotatedSubject.x < rotated.cols / 2 ? cropWidth / 3 : (cropWidth * 2) / 3;
++  const targetY = rotatedSubject.y < rotated.rows / 2 ? cropHeight / 3 : (cropHeight * 2) / 3;
++  let cropX = Math.round(rotatedSubject.x - targetX);
++  let cropY = Math.round(rotatedSubject.y - targetY);
++  cropX = Math.min(Math.max(0, cropX), Math.max(0, rotated.cols - cropWidth));
++  cropY = Math.min(Math.max(0, cropY), Math.max(0, rotated.rows - cropHeight));
++  const cropRect = new cv.Rect(cropX, cropY, cropWidth, cropHeight);
++  const croppedRoi = rotated.roi(cropRect);
++  const cropped = croppedRoi.clone();
++  croppedRoi.delete();
++
++  const adjusted = new cv.Mat();
++  const exposureTarget = 135;
++  const beta = (exposureTarget - metrics.exposure) * 0.2;
++  const contrastTarget = 55;
++  const alpha = 1 + Math.max(-0.25, Math.min(0.35, (contrastTarget - metrics.contrast) / 160));
++  cropped.convertTo(adjusted, -1, alpha, beta);
++
++  const channels = new cv.MatVector();
++  cv.split(adjusted, channels);
++  const average = (metrics.colorBalance.r + metrics.colorBalance.g + metrics.colorBalance.b) / 3;
++  const adjustments = [
++    average - metrics.colorBalance.r,
++    average - metrics.colorBalance.g,
++    average - metrics.colorBalance.b
++  ];
++  for (let i = 0; i < Math.min(3, channels.size()); i++) {
++    const channel = channels.get(i);
++    const scalar = new cv.Mat(channel.rows, channel.cols, channel.type(), new cv.Scalar(adjustments[i] * 0.15));
++    cv.add(channel, scalar, channel);
++    scalar.delete();
++  }
++  const alphaChannel = channels.size() > 3 ? channels.get(3).clone() : null;
++  const merged = new cv.Mat();
++  cv.merge(channels, merged);
++  channels.delete();
++
++  const rgb = new cv.Mat();
++  cv.cvtColor(merged, rgb, cv.COLOR_RGBA2RGB);
++  const hsv = new cv.Mat();
++  cv.cvtColor(rgb, hsv, cv.COLOR_RGB2HSV);
++  const hsvChannels = new cv.MatVector();
++  cv.split(hsv, hsvChannels);
++  const satMat = hsvChannels.get(1);
++  const satData = satMat.data;
++  const satFactor = metrics.saturation < 95 ? 1.1 : 1.0;
++  for (let i = 0; i < satData.length; i++) {
++    satData[i] = Math.min(255, satData[i] * satFactor);
++  }
++  cv.merge(hsvChannels, hsv);
++  const finalRgb = new cv.Mat();
++  cv.cvtColor(hsv, finalRgb, cv.COLOR_HSV2RGB);
++  const final = new cv.Mat();
++  cv.cvtColor(finalRgb, final, cv.COLOR_RGB2RGBA);
++
++  if (alphaChannel) {
++    const planes = new cv.MatVector();
++    cv.split(final, planes);
++    planes.get(3).delete();
++    planes.push_back(alphaChannel);
++    cv.merge(planes, final);
++    planes.delete();
++    alphaChannel.delete();
++  }
++
++  base.delete();
++  rotated.delete();
++  cropped.delete();
++  adjusted.delete();
++  merged.delete();
++  rgb.delete();
++  hsv.delete();
++  hsvChannels.delete();
++  finalRgb.delete();
++
++  return final;
++}
++
++async function processFile(file) {
++  await cvReady;
++  engineStatusState = 'ready';
++  updateStatusBadge();
++  setLoading(true);
++  downloadButton.disabled = true;
++  try {
++    const resizedCanvas = await readImageFile(file);
++    const src = cv.imread(resizedCanvas);
++
++    const metrics = computeMetrics(src);
++    currentMetrics = metrics;
++    renderMetrics(metrics);
++    updateAnalysisSummary(metrics);
++
++    if (lastOriginalMat) lastOriginalMat.delete();
++    lastOriginalMat = src.clone();
++    renderToCanvas(originalCanvas, lastOriginalMat, {
++      showGuides: toggleGrid.checked,
++      metrics,
++      includeAnnotations: true
++    });
++    setCanvasMeta(originalMeta, lastOriginalMat);
++
++    const improved = improveImage(src, metrics);
++    if (lastImprovedMat) lastImprovedMat.delete();
++    lastImprovedMat = improved.clone();
++    renderToCanvas(improvedCanvas, lastImprovedMat, {
++      showGuides: toggleGrid.checked,
++      metrics,
++      includeAnnotations: false
++    });
++    setCanvasMeta(improvedMeta, lastImprovedMat);
++
++    await prepareDownload(lastImprovedMat);
++
++    src.delete();
++    improved.delete();
++  } catch (error) {
++    console.error(error);
++    showError('error_processing', 'Unable to process this file. Please try another image.');
++  } finally {
++    setLoading(false);
++  }
++}
++
++function handleFileInput(event) {
++  const file = event.target.files?.[0];
++  if (file) {
++    processFile(file);
++  }
++}
++
++function handleDrop(event) {
++  event.preventDefault();
++  dropZone.classList.remove('dragover');
++  const file = event.dataTransfer.files?.[0];
++  if (file) {
++    processFile(file);
++  }
++}
++
++function handleDrag(event) {
++  event.preventDefault();
++  if (event.type === 'dragover') {
++    dropZone.classList.add('dragover');
++  } else {
++    dropZone.classList.remove('dragover');
++  }
++}
++
++function initEventListeners() {
++  uploadButton.addEventListener('click', () => fileInput.click());
++  fileInput.addEventListener('change', handleFileInput);
++  dropZone.addEventListener('click', () => fileInput.click());
++  dropZone.addEventListener('keydown', event => {
++    if (event.key === 'Enter' || event.key === ' ') {
++      event.preventDefault();
++      fileInput.click();
++    }
++  });
++  dropZone.addEventListener('dragover', handleDrag);
++  dropZone.addEventListener('dragleave', handleDrag);
++  dropZone.addEventListener('drop', handleDrop);
++  toggleGrid.addEventListener('change', refreshCanvases);
++  resetButton.addEventListener('click', resetInterface);
++  downloadButton.addEventListener('click', () => {
++    if (!currentDownloadUrl) return;
++    const a = document.createElement('a');
++    a.href = currentDownloadUrl;
++    a.download = downloadButton.dataset.filename || 'improved-photo.png';
++    a.click();
++  });
++  langToggleButtons.forEach(btn => {
++    btn.addEventListener('click', () => {
++      if (btn.dataset.lang !== currentLang) {
++        currentLang = btn.dataset.lang;
++        translatePage();
++        refreshCanvases();
++      }
++    });
++  });
++}
++
++async function init() {
++  downloadButton.disabled = true;
++  await loadDictionaries();
++  translatePage();
++  initEventListeners();
++  cvReady.then(() => {
++    engineStatusState = 'ready';
++    updateStatusBadge();
++  });
++}
++
++init();
++
++window.addEventListener('beforeunload', () => {
++  cleanupMats();
++  revokeDownloadUrl();
++});
