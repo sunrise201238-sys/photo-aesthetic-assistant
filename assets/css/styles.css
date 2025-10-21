@@ -445,6 +445,10 @@
 +  font-size: 1.1rem;
 +}
 +
++.loading[hidden] {
++  display: none !important;
++}
++
 +.spinner {
 +  width: 3rem;
 +  height: 3rem;
