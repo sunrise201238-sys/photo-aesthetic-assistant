@@ -1,0 +1,82 @@
+ (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
+diff --git a/index.html b/index.html
+new file mode 100644
+index 0000000000000000000000000000000000000000..9937d567aa549d939b728dc903eebb8d3fb6ba1d
+--- /dev/null
++++ b/index.html
+@@ -0,0 +1,72 @@
++<!DOCTYPE html>
++<html lang="en">
++<head>
++  <meta charset="UTF-8">
++  <meta name="viewport" content="width=device-width, initial-scale=1.0">
++  <title>Photo Aesthetic Assistant</title>
++  <link rel="stylesheet" href="assets/css/styles.css">
++  <link rel="preconnect" href="https://docs.opencv.org">
++  <script async src="https://docs.opencv.org/4.x/opencv.js"></script>
++</head>
++<body>
++  <header class="app-header">
++    <div class="branding">
++      <h1 data-i18n="app_title">Photo Aesthetic Assistant</h1>
++      <p data-i18n="app_tagline">Private, instant composition feedback in your browser.</p>
++    </div>
++    <div class="lang-toggle" role="group" aria-label="Language toggle">
++      <button type="button" data-lang="en-US" class="active">English</button>
++      <button type="button" data-lang="zh-TW">繁體中文</button>
++    </div>
++  </header>
++
++  <main class="app-main">
++    <section class="upload-panel">
++      <div class="drop-zone" id="drop-zone">
++        <input type="file" id="file-input" accept="image/*" hidden>
++        <p data-i18n="drop_instructions">Drop an image here or click to choose a file.</p>
++        <button type="button" id="upload-button" data-i18n="select_button">Select Photo</button>
++      </div>
++      <div class="metrics" id="metrics" aria-live="polite"></div>
++    </section>
++
++    <section class="preview-panel">
++      <div class="canvas-stack">
++        <div class="canvas-card">
++          <h2 data-i18n="original_title">Original</h2>
++          <canvas id="original-canvas" width="640" height="480" role="img" aria-label="Original image preview"></canvas>
++        </div>
++        <div class="canvas-card">
++          <h2 data-i18n="improved_title">Improved Suggestion</h2>
++          <canvas id="improved-canvas" width="640" height="480" role="img" aria-label="Improved image preview"></canvas>
++          <button type="button" id="download-button" data-i18n="download_button" disabled>Download Improved Image</button>
++        </div>
++      </div>
++      <div class="overlay-controls">
++        <label>
++          <input type="checkbox" id="toggle-grid" checked>
++          <span data-i18n="toggle_grid">Show guides</span>
++        </label>
++      </div>
++    </section>
++  </main>
++
++  <footer class="app-footer">
++    <p data-i18n="footer_note">All processing happens locally in your browser. No uploads. No tracking.</p>
++  </footer>
++
++  <template id="metric-template">
++    <div class="metric">
++      <span class="metric-label"></span>
++      <span class="metric-value"></span>
++    </div>
++  </template>
++
++  <div id="loading-indicator" class="loading" hidden>
++    <div class="spinner" aria-hidden="true"></div>
++    <p data-i18n="loading">Processing photo…</p>
++  </div>
++
++  <script type="module" src="assets/js/main.js"></script>
++</body>
++</html>
+ 
+EOF
+)
