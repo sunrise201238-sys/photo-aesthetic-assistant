@@ -1,0 +1,42 @@
+ (cd "$(git rev-parse --show-toplevel)" && git apply --3way <<'EOF' 
+diff --git a/translations/zh-TW.json b/translations/zh-TW.json
+new file mode 100644
+index 0000000000000000000000000000000000000000..767a92339d2af2a60770179df7bd8ff3aebf7dba
+--- /dev/null
++++ b/translations/zh-TW.json
+@@ -0,0 +1,32 @@
++{
++  "app_title": "攝影美感助手",
++  "app_tagline": "即時、私密的構圖回饋，全都在你的瀏覽器內完成。",
++  "drop_instructions": "拖曳影像到此處，或點擊選擇檔案。",
++  "select_button": "選擇照片",
++  "original_title": "原始照片",
++  "improved_title": "建議優化",
++  "download_button": "下載優化照片",
++  "toggle_grid": "顯示輔助線",
++  "footer_note": "所有處理皆在本機完成，不會上傳、不會追蹤。",
++  "loading": "影像分析中…",
++  "metric_main_subject": "主體位置",
++  "metric_horizon": "地平線角度",
++  "metric_rule_of_thirds": "三分構圖對齊",
++  "metric_sharpness": "銳利度變異",
++  "metric_exposure": "曝光",
++  "metric_contrast": "對比",
++  "metric_saturation": "飽和度",
++  "metric_color_balance": "色彩平衡",
++  "metric_foreground_background": "前景 / 背景",
++  "metric_subject_size": "主體比例",
++  "metric_download_name": "優化照片",
++  "metric_feedback": "建議",
++  "feedback_rotation": "稍微旋轉水平線，讓畫面更平穩。",
++  "feedback_crop": "裁切畫面，讓主體落在三分點上。",
++  "feedback_exposure": "提升中間調亮度，獲得更均衡的曝光。",
++  "feedback_contrast": "增加對比，強化畫面深度。",
++  "feedback_saturation": "稍微提升飽和度，色彩更飽滿。",
++  "feedback_sharpness": "試著提高對焦或減少手震。",
++  "feedback_balance": "調整前景與背景的重量以保持清晰。",
++  "feedback_good": "整體平衡佳，只需微調即可！"
++}
+ 
+EOF
+)
