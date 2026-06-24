@@ -17,6 +17,8 @@
   "comp_mode_object": "Object",
   "feature_shadow_title": "Shadow",
   "feature_shadow_desc": "Lift dark areas and recover crushed shadow detail.",
+  "feature_color_title": "White balance",
+  "feature_color_desc": "Neutralize a warm or cool cast for a natural white tone.",
   "footer_note": "All processing happens locally in your browser. No uploads. No tracking.",
   "loading": "Processing photo…",
   "engine_loading": "Loading vision engine…",
