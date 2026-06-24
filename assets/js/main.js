@@ -726,8 +726,9 @@ function computeMetrics(imageData) {
   let sumY = 0;
   let strongCount = 0;
 
-  let horizonAngle = 0;
-  let horizonWeight = 0;
+  let tiltSumSin = 0;
+  let tiltSumCos = 0;
+  let tiltWeight = 0;
 
   for (let y = 1; y < height - 1; y++) {
     for (let x = 1; x < width - 1; x++) {
@@ -742,12 +743,25 @@ function computeMetrics(imageData) {
         sumY += y;
         strongCount++;
       }
-      if (magnitude > horizonThreshold && y > height * 0.25 && y < height * 0.75) {
-        const angle = ((Math.atan2(gradY[idx], gradX[idx]) * 180) / Math.PI) + 90;
-        const normalized = ((angle + 180) % 180) - 90;
-        horizonAngle += normalized * magnitude;
-        horizonWeight += magnitude;
+      if (magnitude > horizonThreshold) {
+        // Quadrupled-angle accumulation: finds the dominant edge orientation
+        // modulo 90°, so the tilt is detected from horizontal *or* vertical
+        // structures (e.g. a tilted bottle or pen, not just a horizon).
+        const theta = Math.atan2(gradY[idx], gradX[idx]);
+        tiltSumSin += Math.sin(4 * theta) * magnitude;
+        tiltSumCos += Math.cos(4 * theta) * magnitude;
+        tiltWeight += magnitude;
       }
+    }
+  }
+
+  // Dominant orientation mod 90°, mapped to [-45°, 45°]. Only trust it when the
+  // edges are coherent enough to indicate a real tilt (avoids rotating noise).
+  let detectedTilt = 0;
+  if (tiltWeight > 0) {
+    const coherence = Math.hypot(tiltSumSin, tiltSumCos) / tiltWeight;
+    if (coherence > 0.18) {
+      detectedTilt = (Math.atan2(tiltSumSin, tiltSumCos) / 4) * (180 / Math.PI);
     }
   }
 
@@ -756,7 +770,7 @@ function computeMetrics(imageData) {
     subjectRect: null,
     subjectCenter: { x: width / 2, y: height / 2 },
     subjectOffset: { x: 0, y: 0 },
-    horizonAngle: horizonWeight ? horizonAngle / horizonWeight : 0,
+    horizonAngle: detectedTilt,
     horizonLine: null,
     ruleOfThirdsScore: 0,
     exposure: stats.mean,
@@ -912,7 +926,7 @@ function nudgeToThirds(params) {
 function applyComposition(sourceCanvas, metrics) {
   const w = sourceCanvas.width;
   const h = sourceCanvas.height;
-  const angleDeg = clamp(metrics.horizonAngle, -18, 18);
+  const angleDeg = clamp(metrics.horizonAngle, -30, 30);
   const rotation = (-angleDeg * Math.PI) / 180;
 
   const rotated = rotateCanvas(sourceCanvas, rotation);
@@ -947,8 +961,8 @@ function applyShadowLift(canvas, metrics) {
 
   const clip = metrics.shadowClipping;
   const dark = Math.max(0, (130 - metrics.exposure) / 130);
-  // Auto lift amount: always a gentle base, stronger when crushed/underexposed.
-  const amount = Math.min(0.6, 0.18 + clip * 1.8 + dark * 0.45);
+  // Gentle auto amount, capped low so shadows don't wash out to grey.
+  const amount = Math.min(0.32, 0.1 + clip * 1.0 + dark * 0.3);
 
   for (let i = 0; i < data.length; i += 4) {
     const r = data[i];
@@ -956,13 +970,14 @@ function applyShadowLift(canvas, metrics) {
     const b = data[i + 2];
     const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
 
-    // Shadow mask: full strength at black, fading to zero by mid-tones (0.6).
-    const mask = Math.max(0, 1 - lum / 0.6);
-    let targetLum = lum + mask * amount * (0.4 + 0.6 * (1 - lum));
-    // Extra recovery for the deepest, near-crushed blacks.
-    targetLum += Math.max(0, 0.16 - lum) * amount * 0.8;
-    targetLum = clamp01(targetLum);
+    // Lift mid-shadows, but taper to zero near pure black so we don't amplify
+    // the sensor-noise floor into grey grain.
+    const shadowMask = Math.max(0, 1 - lum / 0.55);
+    const floorTaper = Math.min(1, lum / 0.06);
+    const lift = amount * shadowMask * floorTaper;
+    if (lift <= 0) continue;
 
+    const targetLum = clamp01(lum + lift * (1 - lum));
     const add = (targetLum - lum) * 255;
     if (add > 0) {
       data[i] = clamp(r + add);
