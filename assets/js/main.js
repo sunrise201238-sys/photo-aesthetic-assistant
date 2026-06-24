@@ -546,78 +546,42 @@ async function getExifOrientation(file) {
   return 1;
 }
 
-function orientImageSource(source, orientation) {
-  const width = source.width || source.naturalWidth;
-  const height = source.height || source.naturalHeight;
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
-
+// Apply an EXIF orientation transform in the *source* coordinate space. The
+// caller pre-scales the context, so this works at any output resolution.
+function applyOrientationTransform(ctx, orientation, width, height) {
   switch (orientation) {
     case 2:
-      canvas.width = width;
-      canvas.height = height;
       ctx.translate(width, 0);
       ctx.scale(-1, 1);
       break;
     case 3:
-      canvas.width = width;
-      canvas.height = height;
       ctx.translate(width, height);
       ctx.rotate(Math.PI);
       break;
     case 4:
-      canvas.width = width;
-      canvas.height = height;
       ctx.translate(0, height);
       ctx.scale(1, -1);
       break;
     case 5:
-      canvas.width = height;
-      canvas.height = width;
       ctx.rotate(0.5 * Math.PI);
       ctx.scale(1, -1);
       break;
     case 6:
-      canvas.width = height;
-      canvas.height = width;
       ctx.rotate(0.5 * Math.PI);
       ctx.translate(0, -height);
       break;
     case 7:
-      canvas.width = height;
-      canvas.height = width;
       ctx.rotate(0.5 * Math.PI);
       ctx.translate(width, -height);
       ctx.scale(-1, 1);
       break;
     case 8:
-      canvas.width = height;
-      canvas.height = width;
       ctx.rotate(-0.5 * Math.PI);
       ctx.translate(-width, 0);
       break;
     default:
-      canvas.width = width;
-      canvas.height = height;
       break;
   }
-
-  ctx.drawImage(source, 0, 0);
-  return canvas;
-}
-
-function drawSourceToCanvas(source) {
-  const width = source.width || source.naturalWidth;
-  const height = source.height || source.naturalHeight;
-  const canvas = document.createElement('canvas');
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(source, 0, 0);
-  if (typeof source.close === 'function') {
-    source.close();
-  }
-  return canvas;
 }
 
 function loadImageElement(file) {
@@ -652,15 +616,39 @@ async function readImageFile(file) {
     source = await loadImageElement(file);
   }
 
-  const baseCanvas = orientationHandled ? drawSourceToCanvas(source) : orientImageSource(source, orientation);
-  const targetSize = scaleDimensions(baseCanvas.width, baseCanvas.height, MAX_DIMENSION);
-  const resizedCanvas = document.createElement('canvas');
-  resizedCanvas.width = targetSize.width;
-  resizedCanvas.height = targetSize.height;
-  const ctx = resizedCanvas.getContext('2d');
-  ctx.drawImage(baseCanvas, 0, 0, targetSize.width, targetSize.height);
+  const srcWidth = source.width || source.naturalWidth;
+  const srcHeight = source.height || source.naturalHeight;
+  // Orientations 5–8 rotate by 90°, swapping the displayed dimensions. When the
+  // browser already baked in the orientation (createImageBitmap) we don't swap.
+  const swap = !orientationHandled && orientation >= 5 && orientation <= 8;
+  const orientedWidth = swap ? srcHeight : srcWidth;
+  const orientedHeight = swap ? srcWidth : srcHeight;
+  const targetSize = scaleDimensions(orientedWidth, orientedHeight, MAX_DIMENSION);
+
+  // Decode straight into the downscaled target canvas — never allocate a
+  // full-resolution canvas, which can exceed mobile Safari's ~16 MP limit on
+  // high-megapixel iPhone photos.
+  const canvas = document.createElement('canvas');
+  canvas.width = targetSize.width;
+  canvas.height = targetSize.height;
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingQuality = 'high';
+
+  if (orientationHandled) {
+    ctx.drawImage(source, 0, 0, targetSize.width, targetSize.height);
+  } else {
+    const scale = targetSize.width / orientedWidth; // uniform (aspect preserved)
+    ctx.scale(scale, scale);
+    applyOrientationTransform(ctx, orientation, srcWidth, srcHeight);
+    ctx.drawImage(source, 0, 0);
+  }
+
+  if (typeof source.close === 'function') {
+    source.close();
+  }
+
   const imageData = ctx.getImageData(0, 0, targetSize.width, targetSize.height);
-  return { canvas: resizedCanvas, imageData };
+  return { canvas, imageData };
 }
 
 function computeStatistics(values) {
