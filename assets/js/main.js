@@ -1127,6 +1127,8 @@ function handleFileInput(event) {
     return;
   }
   const file = input.files[0];
+  // Clear the value so selecting the same file again still fires a change event.
+  input.value = '';
   if (file) {
     processFile(file);
   }
@@ -1155,7 +1157,13 @@ function handleDrag(event) {
 }
 
 function initEventListeners() {
-  uploadButton.addEventListener('click', () => fileInput.click());
+  uploadButton.addEventListener('click', event => {
+    // The button sits inside the drop-zone; stop the click from bubbling so the
+    // drop-zone handler doesn't open a second file picker (which corrupts the
+    // picker state and blocks subsequent uploads).
+    event.stopPropagation();
+    fileInput.click();
+  });
   fileInput.addEventListener('change', handleFileInput);
   dropZone.addEventListener('click', () => fileInput.click());
   dropZone.addEventListener('keydown', event => {
