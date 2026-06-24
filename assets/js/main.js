@@ -135,7 +135,7 @@ let lastOriginalCanvas = null;
 let lastImprovedCanvas = null;
 let featureComposition = true;
 let featureShadow = true;
-let featureColor = true;
+let featureColor = false;
 let compMode = 'landscape';
 let engineStatusState = 'loading';
 let errorTimeoutId = null;
@@ -1064,84 +1064,36 @@ function applyStraighten(sourceCanvas, metrics, rawAngle, maxAngle, doThirds) {
   return out;
 }
 
-// A Gaussian-blurred copy of a canvas, returned as raw pixel data.
-function blurredData(sourceCanvas, px) {
-  const c = document.createElement('canvas');
-  c.width = sourceCanvas.width;
-  c.height = sourceCanvas.height;
-  const ctx = c.getContext('2d');
-  ctx.filter = `blur(${px}px)`;
-  ctx.drawImage(sourceCanvas, 0, 0);
-  ctx.filter = 'none';
-  return ctx.getImageData(0, 0, c.width, c.height).data;
-}
-
-// Shadow lever: lift the shadows (keeping true blacks so it isn't washed),
-// remove grain with edge-preserving smoothing, then restore crisp definition.
-// Calibrated against a user before/after set (clean + sharp, no grain).
+// Shadow lever: a smooth global gamma lift (candidate "A"). It brightens
+// shadows/midtones, never blows highlights, and keeps the natural look — no
+// added sharpening, clarity, or denoise.
 function applyShadowLift(canvas, metrics) {
   const ctx = canvas.getContext('2d');
   const { width, height } = canvas;
-  const n = width * height;
   const imageData = ctx.getImageData(0, 0, width, height);
-  const data = imageData.data;
+  const { data } = imageData;
 
-  // --- TONE: gamma lift + black-point anchor + gentle midtone contrast ---
-  const hist = new Float32Array(256);
-  for (let i = 0; i < n; i++) {
-    const idx = i * 4;
-    const l = 0.2126 * data[idx] + 0.7152 * data[idx + 1] + 0.0722 * data[idx + 2];
-    hist[l < 0 ? 0 : l > 255 ? 255 : l | 0]++;
+  const exposure = metrics.exposure;
+  const dark = Math.max(0, (170 - exposure) / 170); // darker image -> more lift
+  const clipBoost = Math.min(0.15, metrics.shadowClipping * 1.5);
+  const bright = Math.max(0, (exposure - 205) / 50); // ease off already-bright shots
+  const gamma = Math.min(0.95, Math.max(0.55, 0.7 - dark * 0.16 - clipBoost + bright * 0.2));
+
+  if (gamma >= 0.999) {
+    return;
   }
-  let acc = 0;
-  let p1 = 0;
-  const target = n * 0.01;
-  for (let v = 0; v < 256; v++) { acc += hist[v]; if (acc >= target) { p1 = v; break; } }
-  const gamma = 0.78;
-  const lo = Math.min(0.08, Math.pow(p1 / 255, gamma)); // anchor only the deepest ~1% to black
+
   const lut = new Uint8ClampedArray(256);
   for (let v = 0; v < 256; v++) {
-    let y = Math.pow(v / 255, gamma);
-    y = Math.min(1, Math.max(0, (y - lo) / (1 - lo)));
-    y = Math.min(1, Math.max(0, 0.5 + (y - 0.5) * 1.1));
-    lut[v] = Math.round(y * 255);
+    lut[v] = Math.round(255 * Math.pow(v / 255, gamma));
   }
   for (let i = 0; i < data.length; i += 4) {
     data[i] = lut[data[i]];
     data[i + 1] = lut[data[i + 1]];
     data[i + 2] = lut[data[i + 2]];
   }
-  ctx.putImageData(imageData, 0, 0); // write toned image so the blur samples it
 
-  // --- DE-GRAIN: edge-preserving smart blur (smooth flat noise, keep edges) ---
-  const blurD = blurredData(canvas, 1.5);
-  const den = new Uint8ClampedArray(data.length);
-  for (let i = 0; i < data.length; i += 4) {
-    const lt = 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
-    const lb = 0.2126 * blurD[i] + 0.7152 * blurD[i + 1] + 0.0722 * blurD[i + 2];
-    let w = 1 - (Math.abs(lt - lb) - 2) / 8; // flat area -> ~1, edge -> 0
-    w = Math.min(0.9, Math.max(0, w));
-    den[i] = data[i] * (1 - w) + blurD[i] * w;
-    den[i + 1] = data[i + 1] * (1 - w) + blurD[i + 1] * w;
-    den[i + 2] = data[i + 2] * (1 - w) + blurD[i + 2] * w;
-    den[i + 3] = 255;
-  }
-  const denImg = new ImageData(den, width, height);
-  ctx.putImageData(denImg, 0, 0); // write denoised so the next blurs sample it
-
-  // --- DEFINITION: large-radius clarity (local contrast) + mild sharpen ---
-  const minSide = Math.min(width, height);
-  const blurB = blurredData(canvas, Math.max(6, minSide * 0.01));
-  const blurS = blurredData(canvas, 1);
-  for (let i = 0; i < den.length; i += 4) {
-    for (let c = 0; c < 3; c++) {
-      let v = den[i + c];
-      v += 0.45 * (v - blurB[i + c]); // clarity
-      v += 0.35 * (v - blurS[i + c]); // sharpen
-      den[i + c] = v < 0 ? 0 : v > 255 ? 255 : v;
-    }
-  }
-  ctx.putImageData(denImg, 0, 0);
+  ctx.putImageData(imageData, 0, 0);
 }
 
 // Colour lever: auto white balance. Anchor the near-white areas to neutral so
@@ -1348,7 +1300,7 @@ async function init() {
   dictionaries = cloneFallback();
   featureComposition = toggleComposition ? toggleComposition.checked : true;
   featureShadow = toggleShadow ? toggleShadow.checked : true;
-  featureColor = toggleColor ? toggleColor.checked : true;
+  featureColor = toggleColor ? toggleColor.checked : false;
   downloadButton.disabled = true;
   translatePage();
   initEventListeners();
