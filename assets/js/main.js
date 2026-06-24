@@ -291,6 +291,7 @@ function resetInterface() {
   setCanvasMeta(improvedMeta, null);
   downloadButton.disabled = true;
   revokeDownloadUrl();
+  document.body.classList.remove('has-image');
 }
 
 function revokeDownloadUrl() {
@@ -1113,6 +1114,7 @@ async function processFile(file) {
     setCanvasMeta(improvedMeta, lastImprovedCanvas);
 
     await prepareDownload(lastImprovedCanvas);
+    document.body.classList.add('has-image');
   } catch (error) {
     console.error(error);
     showError('error_processing', 'Unable to process this file. Please try another image.');
