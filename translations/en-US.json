@@ -19,6 +19,8 @@
   "feature_shadow_desc": "Lift dark areas and recover crushed shadow detail.",
   "feature_color_title": "White balance",
   "feature_color_desc": "Neutralize a warm or cool cast for a natural white tone.",
+  "feature_detail_title": "Detail",
+  "feature_detail_desc": "Remove grain and sharpen edges for crisp lines.",
   "footer_note": "All processing happens locally in your browser. No uploads. No tracking.",
   "loading": "Processing photo…",
   "engine_loading": "Loading vision engine…",
