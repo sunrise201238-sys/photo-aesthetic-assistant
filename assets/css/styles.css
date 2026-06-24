@@ -403,6 +403,23 @@ body::before {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03), 0 25px 50px -35px rgba(91, 192, 255, 0.3);
 }
 
+/* Once a photo is loaded, shrink the drop-zone so the controls and the result
+   sit near the top — no big upload box pushing the output off-screen. */
+body.has-image .drop-zone {
+  padding: clamp(0.7rem, 2.5vw, 1rem);
+  gap: 0.5rem;
+}
+
+body.has-image .drop-illustration,
+body.has-image .drop-hint {
+  display: none;
+}
+
+body.has-image .drop-title {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
 .canvas-header {
   display: flex;
   justify-content: space-between;
@@ -678,6 +695,17 @@ canvas {
       "upload"
       "preview"
       "detail";
+  }
+
+  /* Stack the result directly under the controls so toggling a feature shows
+     the updated result without scrolling; the original drops below it. */
+  .canvas-stack {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .result-card {
+    order: -1;
   }
 
   .header-actions {
