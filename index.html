@@ -27,10 +27,6 @@
 
     <main class="app-main">
       <section class="upload-panel">
-        <header class="panel-header">
-          <h2 data-i18n="analysis_heading">Analyse &amp; enhance instantly</h2>
-          <p data-i18n="analysis_subheading">Upload a single photo to receive automatic composition guidance and a refined suggestion.</p>
-        </header>
         <div class="drop-zone" id="drop-zone" role="button" tabindex="0" aria-controls="file-input">
           <input type="file" id="file-input" accept="image/*" hidden>
           <div class="drop-illustration" aria-hidden="true"></div>
@@ -38,8 +34,34 @@
           <p class="drop-hint" data-i18n="drop_hint">JPG, PNG, HEIC up to 12 MP. Processed privately on-device.</p>
           <button type="button" id="upload-button" class="primary" data-i18n="select_button">Select Photo</button>
         </div>
-        <div class="analysis-summary" id="analysis-summary" data-i18n="analysis_summary_default">Upload a photo to see composition notes tailored to your scene.</div>
-        <div class="metrics" id="metrics" aria-live="polite"></div>
+        <div class="controls">
+          <div class="control-line">
+            <label class="switch">
+              <input type="checkbox" id="toggle-composition" checked>
+              <span class="switch-track" aria-hidden="true"></span>
+              <span class="switch-name" data-i18n="feature_composition_title">Composition</span>
+            </label>
+            <span class="comp-mode" role="group" aria-label="Composition mode">
+              <button type="button" data-mode="landscape" class="active" data-i18n="comp_mode_landscape">Landscape</button>
+              <button type="button" data-mode="object" data-i18n="comp_mode_object">Object</button>
+            </span>
+          </div>
+          <div class="control-line">
+            <label class="switch">
+              <input type="checkbox" id="toggle-shadow" checked>
+              <span class="switch-track" aria-hidden="true"></span>
+              <span class="switch-name" data-i18n="feature_shadow_title">Shadow</span>
+            </label>
+          </div>
+          <div class="control-line control-line--meta">
+            <label class="switch switch--sm">
+              <input type="checkbox" id="toggle-grid" checked>
+              <span class="switch-track" aria-hidden="true"></span>
+              <span class="switch-name" data-i18n="toggle_grid">Show guides</span>
+            </label>
+            <button type="button" class="ghost" id="reset-button" data-i18n="reset_button">Reset</button>
+          </div>
+        </div>
       </section>
 
       <section class="preview-panel">
@@ -53,40 +75,18 @@
           </div>
           <div class="canvas-card">
             <div class="canvas-header">
-              <h2 data-i18n="improved_title">Improved Suggestion</h2>
+              <h2 data-i18n="improved_title">Result</h2>
               <span class="canvas-meta" id="improved-meta"></span>
             </div>
-            <canvas id="improved-canvas" width="640" height="480" role="img" aria-label="Improved image preview"></canvas>
-            <button type="button" id="download-button" class="primary" data-i18n="download_button" disabled>Download Improved Image</button>
+            <canvas id="improved-canvas" width="640" height="480" role="img" aria-label="Result image preview"></canvas>
+            <button type="button" id="download-button" class="primary" data-i18n="download_button" disabled>Download Result</button>
           </div>
         </div>
-        <div class="feature-controls">
-          <label class="feature-toggle">
-            <input type="checkbox" id="toggle-composition" checked>
-            <span class="feature-toggle-text">
-              <span class="feature-toggle-title" data-i18n="feature_composition_title">Composition</span>
-              <span class="feature-toggle-desc" data-i18n="feature_composition_desc">Straighten the tilt — level the whole scene, or snap a single object upright.</span>
-              <span class="comp-mode" role="group" aria-label="Composition mode">
-                <button type="button" data-mode="landscape" class="active" data-i18n="comp_mode_landscape">Landscape</button>
-                <button type="button" data-mode="object" data-i18n="comp_mode_object">Object</button>
-              </span>
-            </span>
-          </label>
-          <label class="feature-toggle">
-            <input type="checkbox" id="toggle-shadow" checked>
-            <span class="feature-toggle-text">
-              <span class="feature-toggle-title" data-i18n="feature_shadow_title">Shadow</span>
-              <span class="feature-toggle-desc" data-i18n="feature_shadow_desc">Lift dark areas and recover crushed shadow detail.</span>
-            </span>
-          </label>
-        </div>
-        <div class="overlay-controls">
-          <label class="toggle">
-            <input type="checkbox" id="toggle-grid" checked>
-            <span data-i18n="toggle_grid">Show guides</span>
-          </label>
-          <button type="button" class="ghost" id="reset-button" data-i18n="reset_button">Reset</button>
-        </div>
+      </section>
+
+      <section class="detail-panel">
+        <div class="analysis-summary" id="analysis-summary" data-i18n="analysis_summary_default">Upload a photo to see what can be straightened or brightened.</div>
+        <div class="metrics" id="metrics" aria-live="polite"></div>
         <aside class="tip-grid">
           <article class="tip-card">
             <h3 data-i18n="tip_tilt_title">Kill the Dutch angle</h3>
