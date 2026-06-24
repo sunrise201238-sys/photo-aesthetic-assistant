@@ -19,6 +19,8 @@
   "feature_shadow_desc": "提亮暗部，找回被壓死的陰影細節。",
   "feature_color_title": "白平衡",
   "feature_color_desc": "校正偏暖或偏冷色調，呈現自然白。",
+  "feature_detail_title": "細節",
+  "feature_detail_desc": "去除噪點並銳化邊緣，讓線條更清晰。",
   "footer_note": "所有處理都在您的瀏覽器內進行，不需上傳、不會追蹤。",
   "loading": "影像分析中…",
   "engine_loading": "視覺引擎載入中…",

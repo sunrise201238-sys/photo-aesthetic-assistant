@@ -10,6 +10,7 @@ const toggleGrid = document.getElementById('toggle-grid');
 const toggleComposition = document.getElementById('toggle-composition');
 const toggleShadow = document.getElementById('toggle-shadow');
 const toggleColor = document.getElementById('toggle-color');
+const toggleDetail = document.getElementById('toggle-detail');
 const compModeButtons = document.querySelectorAll('.comp-mode button');
 const resetButton = document.getElementById('reset-button');
 const dropZone = document.getElementById('drop-zone');
@@ -44,6 +45,8 @@ const fallbackDictionaries = {
     "feature_shadow_desc": "Lift dark areas and recover crushed shadow detail.",
     "feature_color_title": "White balance",
     "feature_color_desc": "Neutralize a warm or cool cast for a natural white tone.",
+    "feature_detail_title": "Detail",
+    "feature_detail_desc": "Remove grain and sharpen edges for crisp lines.",
     "footer_note": "All processing happens locally in your browser. No uploads. No tracking.",
     "loading": "Processing photo…",
     "engine_loading": "Loading vision engine…",
@@ -95,6 +98,8 @@ const fallbackDictionaries = {
     "feature_shadow_desc": "提亮暗部，找回被壓死的陰影細節。",
     "feature_color_title": "白平衡",
     "feature_color_desc": "校正偏暖或偏冷色調，呈現自然白。",
+    "feature_detail_title": "細節",
+    "feature_detail_desc": "去除噪點並銳化邊緣，讓線條更清晰。",
     "footer_note": "所有處理都在您的瀏覽器內進行，不需上傳、不會追蹤。",
     "loading": "影像分析中…",
     "engine_loading": "視覺引擎載入中…",
@@ -135,7 +140,8 @@ let lastOriginalCanvas = null;
 let lastImprovedCanvas = null;
 let featureComposition = true;
 let featureShadow = true;
-let featureColor = false;
+let featureColor = true;
+let featureDetail = false;
 let compMode = 'landscape';
 let engineStatusState = 'loading';
 let errorTimeoutId = null;
@@ -922,8 +928,11 @@ function buildImproved(baseCanvas, metrics) {
   if (featureShadow) {
     applyShadowLift(canvas, metrics);
   }
+  if (featureDetail) {
+    applyDetail(canvas);
+  }
   if (featureColor) {
-    // Applied last so the whites end up neutral regardless of the shadow stage.
+    // Applied last so the whites end up neutral regardless of the other stages.
     applyWhiteBalance(canvas);
   }
   return canvas;
@@ -1067,6 +1076,58 @@ function applyStraighten(sourceCanvas, metrics, rawAngle, maxAngle, doThirds) {
 // Shadow lever: a smooth global gamma lift (candidate "A"). It brightens
 // shadows/midtones, never blows highlights, and keeps the natural look — no
 // added sharpening, clarity, or denoise.
+// A Gaussian-blurred copy of a canvas, returned as raw pixel data.
+function blurredData(sourceCanvas, px) {
+  const c = document.createElement('canvas');
+  c.width = sourceCanvas.width;
+  c.height = sourceCanvas.height;
+  const ctx = c.getContext('2d');
+  ctx.filter = `blur(${px}px)`;
+  ctx.drawImage(sourceCanvas, 0, 0);
+  ctx.filter = 'none';
+  return ctx.getImageData(0, 0, c.width, c.height).data;
+}
+
+// Detail lever: remove grain and sharpen, independent of the shadow lift.
+// De-grain with an edge-preserving smart blur (smooth flat noise, keep edges),
+// then restore definition with large-radius clarity + a mild sharpen.
+function applyDetail(canvas) {
+  const ctx = canvas.getContext('2d');
+  const { width, height } = canvas;
+  const imageData = ctx.getImageData(0, 0, width, height);
+  const { data } = imageData;
+
+  // De-grain: blend toward the blur only in flat areas, leave edges crisp.
+  const blurD = blurredData(canvas, 1.5);
+  const den = new Uint8ClampedArray(data.length);
+  for (let i = 0; i < data.length; i += 4) {
+    const lt = 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
+    const lb = 0.2126 * blurD[i] + 0.7152 * blurD[i + 1] + 0.0722 * blurD[i + 2];
+    let w = 1 - (Math.abs(lt - lb) - 2) / 8; // flat area -> ~1, edge -> 0
+    w = Math.min(0.9, Math.max(0, w));
+    den[i] = data[i] * (1 - w) + blurD[i] * w;
+    den[i + 1] = data[i + 1] * (1 - w) + blurD[i + 1] * w;
+    den[i + 2] = data[i + 2] * (1 - w) + blurD[i + 2] * w;
+    den[i + 3] = 255;
+  }
+  const denImg = new ImageData(den, width, height);
+  ctx.putImageData(denImg, 0, 0); // write denoised so the next blurs sample it
+
+  // Definition: large-radius clarity (local contrast) + a mild sharpen.
+  const minSide = Math.min(width, height);
+  const blurB = blurredData(canvas, Math.max(6, minSide * 0.01));
+  const blurS = blurredData(canvas, 1);
+  for (let i = 0; i < den.length; i += 4) {
+    for (let c = 0; c < 3; c++) {
+      let v = den[i + c];
+      v += 0.45 * (v - blurB[i + c]); // clarity
+      v += 0.35 * (v - blurS[i + c]); // sharpen
+      den[i + c] = v < 0 ? 0 : v > 255 ? 255 : v;
+    }
+  }
+  ctx.putImageData(denImg, 0, 0);
+}
+
 function applyShadowLift(canvas, metrics) {
   const ctx = canvas.getContext('2d');
   const { width, height } = canvas;
@@ -1244,6 +1305,10 @@ function initEventListeners() {
     featureColor = toggleColor.checked;
     rebuildImproved();
   });
+  toggleDetail.addEventListener('change', () => {
+    featureDetail = toggleDetail.checked;
+    rebuildImproved();
+  });
   compModeButtons.forEach(btn => {
     btn.addEventListener('click', event => {
       event.preventDefault();
@@ -1300,7 +1365,8 @@ async function init() {
   dictionaries = cloneFallback();
   featureComposition = toggleComposition ? toggleComposition.checked : true;
   featureShadow = toggleShadow ? toggleShadow.checked : true;
-  featureColor = toggleColor ? toggleColor.checked : false;
+  featureColor = toggleColor ? toggleColor.checked : true;
+  featureDetail = toggleDetail ? toggleDetail.checked : false;
   downloadButton.disabled = true;
   translatePage();
   initEventListeners();
