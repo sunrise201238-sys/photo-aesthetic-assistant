@@ -712,7 +712,7 @@ function computeMetrics(imageData) {
 
   const stats = computeStatistics(grayscale);
   const gradientThreshold = samplePercentile(gradient, 0.9);
-  const horizonThreshold = samplePercentile(gradient, 0.85);
+  const horizonThreshold = samplePercentile(gradient, 0.95);
 
   let minX = width;
   let minY = height;
@@ -756,8 +756,17 @@ function computeMetrics(imageData) {
   let detectedTilt = 0;
   if (tiltWeight > 0) {
     const coherence = Math.hypot(tiltSumSin, tiltSumCos) / tiltWeight;
-    if (coherence > 0.18) {
-      detectedTilt = (Math.atan2(tiltSumSin, tiltSumCos) / 4) * (180 / Math.PI);
+    // Only straighten when the strong edges are highly coherent (architectural
+    // lines). Low-coherence scenes — e.g. a subject behind reflective glass —
+    // can't be measured reliably, so they're left untouched rather than rotated
+    // by a wrong angle. Threshold calibrated against registered before/after pairs.
+    if (coherence > 0.4) {
+      const angle = (Math.atan2(tiltSumSin, tiltSumCos) / 4) * (180 / Math.PI);
+      // Dead-zone: ignore sub-1.5° tilts — imperceptible, and avoids nudging
+      // already-level photos from estimation noise.
+      if (Math.abs(angle) >= 1.5) {
+        detectedTilt = angle;
+      }
     }
   }
 
