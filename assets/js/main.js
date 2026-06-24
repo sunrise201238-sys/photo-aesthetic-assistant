@@ -23,7 +23,7 @@ const errorToast = document.getElementById('error-toast');
 
 const fallbackDictionaries = {
   'en-US': {
-    "app_title": "Photo Aesthetic Assistant",
+    "app_title": "Photo Assistant",
     "app_tagline": "Private, instant photo fixes in your browser.",
     "analysis_heading": "Straighten & brighten instantly",
     "analysis_subheading": "Upload a photo, then toggle the fixes you want. Everything runs on-device.",
@@ -72,7 +72,7 @@ const fallbackDictionaries = {
     "error_dictionary": "Using built-in language defaults. Some translations may be missing."
   },
   'zh-TW': {
-    "app_title": "影像美感助手",
+    "app_title": "影像助手",
     "app_tagline": "完全在瀏覽器內即時修正照片，隱私零外洩。",
     "analysis_heading": "立即校正與提亮",
     "analysis_subheading": "上傳照片後，自由切換想要的修正功能，所有處理皆在本機完成。",
