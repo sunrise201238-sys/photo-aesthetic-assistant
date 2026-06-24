@@ -7,6 +7,8 @@ const originalMeta = document.getElementById('original-meta');
 const improvedMeta = document.getElementById('improved-meta');
 const downloadButton = document.getElementById('download-button');
 const toggleGrid = document.getElementById('toggle-grid');
+const toggleComposition = document.getElementById('toggle-composition');
+const toggleShadow = document.getElementById('toggle-shadow');
 const resetButton = document.getElementById('reset-button');
 const dropZone = document.getElementById('drop-zone');
 const fileInput = document.getElementById('file-input');
@@ -21,169 +23,97 @@ const errorToast = document.getElementById('error-toast');
 const fallbackDictionaries = {
   'en-US': {
     "app_title": "Photo Aesthetic Assistant",
-    "app_tagline": "Private, instant composition feedback in your browser.",
-    "analysis_heading": "Analyse & enhance instantly",
-    "analysis_subheading": "Upload a single photo to receive automatic composition guidance and a refined suggestion.",
+    "app_tagline": "Private, instant photo fixes in your browser.",
+    "analysis_heading": "Straighten & brighten instantly",
+    "analysis_subheading": "Upload a photo, then toggle the fixes you want. Everything runs on-device.",
     "drop_instructions": "Drop an image here or click to choose a file.",
     "drop_hint": "JPG, PNG, HEIC up to 12 MP. Processed privately on-device.",
     "select_button": "Select Photo",
     "reset_button": "Reset",
     "original_title": "Original",
-    "improved_title": "Improved Suggestion",
-    "download_button": "Download Improved Image",
+    "improved_title": "Result",
+    "download_button": "Download Result",
     "toggle_grid": "Show guides",
+    "feature_composition_title": "Composition",
+    "feature_composition_desc": "Level the tilt, with a gentle rule-of-thirds nudge when it won't crop the subject.",
+    "feature_shadow_title": "Shadow",
+    "feature_shadow_desc": "Lift dark areas and recover crushed shadow detail.",
     "footer_note": "All processing happens locally in your browser. No uploads. No tracking.",
     "loading": "Processing photo…",
     "engine_loading": "Loading vision engine…",
     "engine_ready": "Vision engine ready",
     "engine_error": "Vision engine unavailable",
-    "metric_main_subject": "Main subject position",
-    "metric_horizon": "Horizon angle",
+    "metric_horizon": "Tilt angle",
     "metric_rule_of_thirds": "Rule-of-thirds alignment",
-    "metric_sharpness": "Sharpness variance",
-    "metric_exposure": "Exposure",
-    "metric_contrast": "Contrast",
-    "metric_saturation": "Saturation",
-    "metric_color_balance": "Color balance",
-    "metric_foreground_background": "Foreground vs. background",
-    "metric_subject_size": "Subject size",
+    "metric_main_subject": "Subject position",
+    "metric_exposure": "Brightness",
     "metric_shadow_clipping": "Shadow clipping",
-    "metric_highlight_clipping": "Highlight clipping",
-    "metric_midtone_balance": "Midtone balance",
-    "metric_color_cast_strength": "Color cast",
-    "metric_color_cast_warm": "Warm",
-    "metric_color_cast_cool": "Cool",
-    "metric_leading_lines": "Leading lines",
-    "metric_texture": "Texture energy",
-    "metric_download_name": "improved-photo",
-    "metric_feedback": "Suggestions",
-    "analysis_summary_default": "Upload a photo to see composition notes tailored to your scene.",
-    "summary_subject_missing": "<strong>Subject:</strong> No dominant subject detected — choose a clearer focal point.",
+    "metric_download_name": "fixed-photo",
+    "analysis_summary_default": "Upload a photo to see what can be straightened or brightened.",
+    "summary_all_off": "Both fixes are off — showing the original. Toggle Composition or Shadow to start.",
+    "summary_subject_missing": "<strong>Subject:</strong> No dominant subject detected — framing left as captured.",
     "summary_subject_centered": "<strong>Subject:</strong> Nicely balanced near the thirds intersections.",
-    "summary_subject_off_center": "<strong>Subject:</strong> Off-centre — cropping will guide the eye to a stronger point.",
-    "summary_horizon_level": "<strong>Horizon:</strong> Already level and steady.",
-    "summary_horizon_tilted": "<strong>Horizon:</strong> Tilted by {{angle}} — auto rotation applied.",
-    "summary_shadow_clipped": "<strong>Light:</strong> Shadows were crushed — lifted to recover detail.",
-    "summary_highlight_clipped": "<strong>Light:</strong> Highlights clipped; toned down to protect detail.",
-    "summary_exposure_dark": "<strong>Light:</strong> Slightly underexposed; midtones lifted in the suggestion.",
-    "summary_exposure_bright": "<strong>Light:</strong> Highlights are bright; toned down for balance.",
-    "summary_exposure_balanced": "<strong>Light:</strong> Balanced exposure with healthy midtones.",
-    "summary_balance_foreground": "<strong>Depth:</strong> Foreground dominates; background softened for separation.",
-    "summary_balance_background": "<strong>Depth:</strong> Background detail is strong; foreground contrast improved.",
-    "summary_balance_even": "<strong>Depth:</strong> Foreground and background feel evenly weighted.",
-    "summary_sharpness_soft": "<strong>Texture:</strong> Edges read soft — stabilise capture for extra crispness.",
-    "summary_color_warm": "<strong>Colour:</strong> Warm cast detected; neutralised for natural tones.",
-    "summary_color_cool": "<strong>Colour:</strong> Cool tint spotted; warmed for lifelike skin and skies.",
-    "summary_color_balanced": "<strong>Colour:</strong> Palette remains balanced after subtle toning.",
-    "summary_leading_lines": "<strong>Flow:</strong> Leading lines draw the eye along a {{angle}} direction.",
-    "tip_subject_title": "Find the subject",
-    "tip_subject_text": "The assistant highlights the strongest contour to estimate your main subject position.",
-    "tip_horizon_title": "Balance the horizon",
-    "tip_horizon_text": "We detect dominant lines to level the scene and keep skies straight.",
-    "tip_color_title": "Polish the tones",
-    "tip_color_text": "Subtle exposure, contrast, and color tweaks keep the improved version natural.",
+    "summary_subject_off_center": "<strong>Subject:</strong> Off-centre — nudged toward a thirds line where it fit.",
+    "summary_horizon_level": "<strong>Tilt:</strong> Already level — no rotation needed.",
+    "summary_horizon_tilted": "<strong>Tilt:</strong> Leveled a {{angle}} tilt and cropped the corners clean.",
+    "summary_shadow_lifted": "<strong>Shadow:</strong> Dark areas lifted to recover detail.",
+    "summary_shadow_ok": "<strong>Shadow:</strong> Shadows already open — only a gentle lift applied.",
+    "tip_tilt_title": "Kill the Dutch angle",
+    "tip_tilt_text": "We detect the dominant lines, rotate the scene level, and crop the corners so there are no gaps.",
+    "tip_thirds_title": "Reframe safely",
+    "tip_thirds_text": "Within the leveling crop we nudge the subject toward a thirds line — only when nothing important gets cut.",
+    "tip_shadow_title": "Open the shadows",
+    "tip_shadow_text": "Crushed and underexposed areas are brightened automatically while highlights stay protected.",
     "meta_dimensions": "{{width}}×{{height}} px",
     "error_processing": "Unable to process this file. Please try another image.",
-    "error_dictionary": "Using built-in language defaults. Some translations may be missing.",
-    "feedback_rotation": "Slightly rotate the horizon to level the scene.",
-    "feedback_crop": "Consider cropping so the subject sits on a thirds intersection.",
-    "feedback_exposure": "Brighten the midtones for better balance.",
-    "feedback_contrast": "Increase contrast to emphasize depth.",
-    "feedback_saturation": "Boost saturation slightly for richer color.",
-    "feedback_sharpness": "Try increasing focus or reducing camera shake.",
-    "feedback_balance": "Balance foreground and background elements for clarity.",
-    "feedback_highlights": "Recover highlights to protect bright detail.",
-    "feedback_shadows": "Lift shadow detail to avoid crushed blacks.",
-    "feedback_local_contrast": "Enhance micro-contrast so textures feel more defined.",
-    "feedback_vibrance": "Add vibrance for livelier hues without oversaturating.",
-    "feedback_color_warm": "Cool down the warm colour cast for neutral tones.",
-    "feedback_color_cool": "Warm up the cool colour shift to keep tones natural.",
-    "feedback_leading_lines": "Strengthen leading lines or perspective cues to guide the eye.",
-    "feedback_vignette": "Add a gentle vignette to spotlight the subject.",
-    "feedback_good": "Great balance! Only minor refinements suggested."
+    "error_dictionary": "Using built-in language defaults. Some translations may be missing."
   },
   'zh-TW': {
     "app_title": "影像美感助手",
-    "app_tagline": "完全在瀏覽器內即時提供構圖建議，隱私零外洩。",
-    "analysis_heading": "立即分析並優化",
-    "analysis_subheading": "上傳單張照片，即可獲得自動構圖建議與優化版本。",
+    "app_tagline": "完全在瀏覽器內即時修正照片，隱私零外洩。",
+    "analysis_heading": "立即校正與提亮",
+    "analysis_subheading": "上傳照片後，自由切換想要的修正功能，所有處理皆在本機完成。",
     "drop_instructions": "拖曳影像到此或點擊選擇檔案。",
     "drop_hint": "支援 JPG、PNG、HEIC，最多 1200 萬像素。所有處理皆在本機完成。",
     "select_button": "選擇照片",
     "reset_button": "重設",
     "original_title": "原始影像",
-    "improved_title": "優化建議",
-    "download_button": "下載優化影像",
+    "improved_title": "處理結果",
+    "download_button": "下載結果",
     "toggle_grid": "顯示輔助線",
+    "feature_composition_title": "構圖",
+    "feature_composition_desc": "校正傾斜，並在不裁切主體的前提下，輕微靠向三分線。",
+    "feature_shadow_title": "陰影",
+    "feature_shadow_desc": "提亮暗部，找回被壓死的陰影細節。",
     "footer_note": "所有處理都在您的瀏覽器內進行，不需上傳、不會追蹤。",
     "loading": "影像分析中…",
     "engine_loading": "視覺引擎載入中…",
     "engine_ready": "視覺引擎就緒",
     "engine_error": "視覺引擎無法使用",
-    "metric_main_subject": "主體位置",
-    "metric_horizon": "地平線角度",
+    "metric_horizon": "傾斜角度",
     "metric_rule_of_thirds": "三分構圖對齊",
-    "metric_sharpness": "銳利度變異",
-    "metric_exposure": "曝光",
-    "metric_contrast": "對比",
-    "metric_saturation": "飽和度",
-    "metric_color_balance": "色彩平衡",
-    "metric_foreground_background": "前景 / 背景比例",
-    "metric_subject_size": "主體比例",
+    "metric_main_subject": "主體位置",
+    "metric_exposure": "亮度",
     "metric_shadow_clipping": "陰影裁切",
-    "metric_highlight_clipping": "高光裁切",
-    "metric_midtone_balance": "中間調平衡",
-    "metric_color_cast_strength": "色偏",
-    "metric_color_cast_warm": "偏暖",
-    "metric_color_cast_cool": "偏冷",
-    "metric_leading_lines": "引導線",
-    "metric_texture": "紋理能量",
-    "metric_download_name": "improved-photo",
-    "metric_feedback": "建議",
-    "analysis_summary_default": "上傳照片即可看到針對場景量身打造的構圖重點。",
-    "summary_subject_missing": "<strong>主體：</strong> 未偵測到明顯主體，請選擇更清楚的焦點。",
+    "metric_download_name": "fixed-photo",
+    "analysis_summary_default": "上傳照片即可看到可校正或提亮的項目。",
+    "summary_all_off": "兩項修正都已關閉，顯示原始影像。請切換「構圖」或「陰影」開始。",
+    "summary_subject_missing": "<strong>主體：</strong> 未偵測到明顯主體，維持原始構圖。",
     "summary_subject_centered": "<strong>主體：</strong> 已落在三分線附近，構圖平衡。",
-    "summary_subject_off_center": "<strong>主體：</strong> 稍微偏離三分線，裁切後可更聚焦。",
-    "summary_horizon_level": "<strong>地平線：</strong> 已經水平穩定。",
-    "summary_horizon_tilted": "<strong>地平線：</strong> 傾斜 {{angle}}，已自動校正。",
-    "summary_shadow_clipped": "<strong>光線：</strong> 陰影過暗，優化版本已拉回細節。",
-    "summary_highlight_clipped": "<strong>光線：</strong> 高光爆掉，已壓低保留紋理。",
-    "summary_exposure_dark": "<strong>光線：</strong> 稍微偏暗，優化版本提升了中間調。",
-    "summary_exposure_bright": "<strong>光線：</strong> 高光較亮，已適度壓低。",
-    "summary_exposure_balanced": "<strong>光線：</strong> 曝光均衡，中間調健康。",
-    "summary_balance_foreground": "<strong>景深：</strong> 前景佔比高，已讓背景更柔和。",
-    "summary_balance_background": "<strong>景深：</strong> 背景細節強烈，已提升前景對比。",
-    "summary_balance_even": "<strong>景深：</strong> 前景與背景比例平衡。",
-    "summary_sharpness_soft": "<strong>細節：</strong> 邊緣略軟，可嘗試穩定拍攝以提高銳利度。",
-    "summary_color_warm": "<strong>色彩：</strong> 偵測到暖色色偏，已稍微冷卻讓色調自然。",
-    "summary_color_cool": "<strong>色彩：</strong> 偵測到偏冷色調，已加暖讓膚色與天空更自然。",
-    "summary_color_balanced": "<strong>色彩：</strong> 維持中性平衡並微調色調。",
-    "summary_leading_lines": "<strong>視線：</strong> 引導線形成 {{angle}} 方向的動勢。",
-    "tip_subject_title": "鎖定主體",
-    "tip_subject_text": "透過強烈輪廓估計最有力的主體位置。",
-    "tip_horizon_title": "維持水平",
-    "tip_horizon_text": "偵測主要線條自動校正地平線。",
-    "tip_color_title": "調整色調",
-    "tip_color_text": "細緻的曝光與色彩調整讓畫面自然不失真。",
+    "summary_subject_off_center": "<strong>主體：</strong> 稍微偏離三分線，已在可行範圍內靠向三分線。",
+    "summary_horizon_level": "<strong>傾斜：</strong> 已經水平，無需旋轉。",
+    "summary_horizon_tilted": "<strong>傾斜：</strong> 已校正 {{angle}} 的傾斜並裁切邊角。",
+    "summary_shadow_lifted": "<strong>陰影：</strong> 已提亮暗部找回細節。",
+    "summary_shadow_ok": "<strong>陰影：</strong> 暗部原本就清楚，僅做輕微提亮。",
+    "tip_tilt_title": "消除傾斜",
+    "tip_tilt_text": "偵測主要線條，將畫面轉正並裁切邊角，避免留下空白。",
+    "tip_thirds_title": "安全重構圖",
+    "tip_thirds_text": "在校正裁切範圍內，將主體輕微靠向三分線——僅在不裁切重要元素時進行。",
+    "tip_shadow_title": "打開陰影",
+    "tip_shadow_text": "自動提亮被壓死與曝光不足的區域，同時保護高光。",
     "meta_dimensions": "{{width}}×{{height}} px",
     "error_processing": "此檔案無法處理，請改用其他影像。",
-    "error_dictionary": "使用內建語系字串，部分翻譯可能缺少。",
-    "feedback_rotation": "稍微旋轉地平線以保持水平。",
-    "feedback_crop": "調整裁切讓主體落在三分線上。",
-    "feedback_exposure": "提升中間調亮度讓畫面更平衡。",
-    "feedback_contrast": "增加對比以強化景深層次。",
-    "feedback_saturation": "些微提升飽和度讓色彩更鮮明。",
-    "feedback_sharpness": "拍攝時保持穩定以獲得更銳利的影像。",
-    "feedback_balance": "調整前景與背景比例讓構圖更清晰。",
-    "feedback_highlights": "回收高光避免亮部失真。",
-    "feedback_shadows": "提亮暗部保留陰影細節。",
-    "feedback_local_contrast": "加強微對比讓紋理更立體。",
-    "feedback_vibrance": "增加活力飽和讓色彩更生動。",
-    "feedback_color_warm": "稍微降低暖色色偏保持自然色調。",
-    "feedback_color_cool": "加入暖色減少偏冷色調。",
-    "feedback_leading_lines": "強化引導線或透視感來帶動視線。",
-    "feedback_vignette": "加上柔和暗角以聚焦主體。",
-    "feedback_good": "整體表現優異，只需細部微調。"
+    "error_dictionary": "使用內建語系字串，部分翻譯可能缺少。"
   }
 };
 
@@ -193,6 +123,8 @@ let currentMetrics = null;
 let currentDownloadUrl = null;
 let lastOriginalCanvas = null;
 let lastImprovedCanvas = null;
+let featureComposition = true;
+let featureShadow = true;
 let engineStatusState = 'loading';
 let errorTimeoutId = null;
 let dictionaryWarningShown = false;
@@ -200,16 +132,32 @@ let dictionaryWarningShown = false;
 const formatters = {
   percent: value => `${Math.round(value * 100)}%`,
   degrees: value => `${value.toFixed(1)}°`,
-  score: value => value.toFixed(2),
-  numeric: value => value.toFixed(1)
+  score: value => value.toFixed(2)
 };
 
 function clamp(value, min = 0, max = 255) {
   return Math.min(max, Math.max(min, value));
 }
 
+function clamp01(value) {
+  return Math.min(1, Math.max(0, value));
+}
+
+function clampRange(value, lo, hi) {
+  if (lo > hi) return (lo + hi) / 2;
+  return Math.min(hi, Math.max(lo, value));
+}
+
 function cloneFallback() {
   return JSON.parse(JSON.stringify(fallbackDictionaries));
+}
+
+function cloneCanvas(source) {
+  const canvas = document.createElement('canvas');
+  canvas.width = source.width;
+  canvas.height = source.height;
+  canvas.getContext('2d').drawImage(source, 0, 0);
+  return canvas;
 }
 
 function updateStatusBadge() {
@@ -355,7 +303,7 @@ async function prepareDownload(sourceCanvas) {
   await new Promise(resolve => {
     sourceCanvas.toBlob(blob => {
       const dict = dictionaries[currentLang] || {};
-      const name = dict['metric_download_name'] || 'improved-photo';
+      const name = dict['metric_download_name'] || 'fixed-photo';
       if (blob) {
         currentDownloadUrl = URL.createObjectURL(blob);
         downloadButton.disabled = false;
@@ -400,6 +348,19 @@ function refreshCanvases() {
   }
 }
 
+async function rebuildImproved() {
+  if (!currentMetrics || !lastOriginalCanvas) return;
+  lastImprovedCanvas = buildImproved(lastOriginalCanvas, currentMetrics);
+  renderToCanvas(improvedCanvas, lastImprovedCanvas, {
+    showGuides: toggleGrid.checked,
+    metrics: currentMetrics,
+    includeAnnotations: false
+  });
+  setCanvasMeta(improvedMeta, lastImprovedCanvas);
+  updateAnalysisSummary(currentMetrics);
+  await prepareDownload(lastImprovedCanvas);
+}
+
 function translatePage() {
   const dict = dictionaries[currentLang] || {};
   document.documentElement.lang = currentLang;
@@ -426,25 +387,18 @@ function translatePage() {
 function renderMetrics(metrics) {
   const dict = dictionaries[currentLang] || {};
   metricsContainer.innerHTML = '';
-  const castDirection = metrics.colorCast.bias >= 0 ? (dict['metric_color_cast_warm'] || 'Warm') : (dict['metric_color_cast_cool'] || 'Cool');
-  const castValue = `${castDirection} ${formatters.percent(Math.min(1, Math.abs(metrics.colorCast.strength)))}`;
+
+  let subjectValue = '—';
+  if (metrics.subjectRect) {
+    subjectValue = `${formatters.percent(metrics.subjectCenter.x / metrics.imageSize.width)} / ${formatters.percent(metrics.subjectCenter.y / metrics.imageSize.height)}`;
+  }
+
   const entries = [
-    ['metric_main_subject', `${formatters.percent(Math.max(0, 0.5 - Math.abs(metrics.subjectOffset.x)))} / ${formatters.percent(Math.max(0, 0.5 - Math.abs(metrics.subjectOffset.y)))}`],
     ['metric_horizon', formatters.degrees(metrics.horizonAngle)],
     ['metric_rule_of_thirds', formatters.score(metrics.ruleOfThirdsScore)],
-    ['metric_sharpness', formatters.numeric(metrics.sharpnessVariance)],
-    ['metric_exposure', formatters.numeric(metrics.exposure)],
-    ['metric_contrast', formatters.numeric(metrics.contrast)],
-    ['metric_saturation', formatters.numeric(metrics.saturation)],
-    ['metric_color_balance', `${metrics.colorBalance.r.toFixed(0)} / ${metrics.colorBalance.g.toFixed(0)} / ${metrics.colorBalance.b.toFixed(0)}`],
-    ['metric_foreground_background', formatters.score(metrics.foregroundBackground)],
-    ['metric_subject_size', formatters.percent(metrics.subjectSize)],
-    ['metric_shadow_clipping', formatters.percent(metrics.shadowClipping)],
-    ['metric_highlight_clipping', formatters.percent(metrics.highlightClipping)],
-    ['metric_midtone_balance', formatters.percent(metrics.midtoneBalance)],
-    ['metric_color_cast_strength', castValue],
-    ['metric_leading_lines', `${formatters.degrees(metrics.leadingLines.angle)} / ${formatters.percent(metrics.leadingLines.strength)}`],
-    ['metric_texture', formatters.percent(metrics.textureStrength)]
+    ['metric_main_subject', subjectValue],
+    ['metric_exposure', Math.round(metrics.exposure).toString()],
+    ['metric_shadow_clipping', formatters.percent(metrics.shadowClipping)]
   ];
 
   for (const [labelKey, value] of entries) {
@@ -453,17 +407,32 @@ function renderMetrics(metrics) {
     fragment.querySelector('.metric-value').textContent = value;
     metricsContainer.appendChild(fragment);
   }
+}
 
-  const feedbackWrap = document.createElement('div');
-  feedbackWrap.className = 'metric';
-  const label = document.createElement('span');
-  label.className = 'metric-label';
-  label.textContent = dict['metric_feedback'] || 'Suggestions';
-  const valueSpan = document.createElement('span');
-  valueSpan.className = 'metric-value';
-  valueSpan.innerHTML = metrics.feedback.map(key => dict[key] || key).join('<br>');
-  feedbackWrap.append(label, valueSpan);
-  metricsContainer.appendChild(feedbackWrap);
+function appendSummarySegment(fragment, segment) {
+  if (!segment) return;
+  const wrapper = document.createElement('div');
+  wrapper.className = 'summary-item';
+  const temp = document.createElement('div');
+  temp.innerHTML = segment;
+  const strong = temp.querySelector('strong');
+  if (strong) {
+    const label = document.createElement('span');
+    label.className = 'summary-label';
+    label.textContent = strong.textContent.trim();
+    const text = document.createElement('span');
+    text.className = 'summary-text';
+    strong.remove();
+    text.textContent = temp.textContent.trim();
+    wrapper.append(label, text);
+  } else {
+    wrapper.classList.add('summary-item--single');
+    const text = document.createElement('span');
+    text.className = 'summary-text';
+    text.textContent = temp.textContent.trim();
+    wrapper.append(text);
+  }
+  fragment.appendChild(wrapper);
 }
 
 function updateAnalysisSummary(metrics) {
@@ -475,59 +444,32 @@ function updateAnalysisSummary(metrics) {
     return;
   }
 
+  if (!featureComposition && !featureShadow) {
+    analysisSummary.textContent = dict['summary_all_off'] || '';
+    return;
+  }
+
   const segments = [];
-  if (!metrics.subjectRect) {
-    segments.push(dict['summary_subject_missing']);
-  } else {
-    const offset = Math.max(Math.abs(metrics.subjectOffset.x), Math.abs(metrics.subjectOffset.y));
-    if (offset < 0.12) {
-      segments.push(dict['summary_subject_centered']);
+
+  if (featureComposition) {
+    if (Math.abs(metrics.horizonAngle) <= 0.3) {
+      segments.push(dict['summary_horizon_level']);
     } else {
-      segments.push(dict['summary_subject_off_center']);
+      const template = dict['summary_horizon_tilted'] || '';
+      segments.push(template.replace('{{angle}}', formatters.degrees(Math.abs(metrics.horizonAngle))));
+    }
+
+    if (!metrics.subjectRect) {
+      segments.push(dict['summary_subject_missing']);
+    } else {
+      const offset = Math.max(Math.abs(metrics.subjectOffset.x), Math.abs(metrics.subjectOffset.y));
+      segments.push(offset < 0.12 ? dict['summary_subject_centered'] : dict['summary_subject_off_center']);
     }
   }
 
-  if (Math.abs(metrics.horizonAngle) <= 1) {
-    segments.push(dict['summary_horizon_level']);
-  } else {
-    const template = dict['summary_horizon_tilted'] || '';
-    segments.push(template.replace('{{angle}}', formatters.degrees(Math.abs(metrics.horizonAngle))));
-  }
-
-  if (metrics.shadowClipping > 0.04) {
-    segments.push(dict['summary_shadow_clipped']);
-  } else if (metrics.highlightClipping > 0.04) {
-    segments.push(dict['summary_highlight_clipped']);
-  } else if (metrics.exposure < 110) {
-    segments.push(dict['summary_exposure_dark']);
-  } else if (metrics.exposure > 150) {
-    segments.push(dict['summary_exposure_bright']);
-  } else {
-    segments.push(dict['summary_exposure_balanced']);
-  }
-
-  if (metrics.foregroundBackground > 1.2) {
-    segments.push(dict['summary_balance_foreground']);
-  } else if (metrics.foregroundBackground < 0.8) {
-    segments.push(dict['summary_balance_background']);
-  } else {
-    segments.push(dict['summary_balance_even']);
-  }
-
-  if (metrics.sharpnessVariance < 120) {
-    segments.push(dict['summary_sharpness_soft']);
-  }
-
-  if (metrics.colorCast.strength > 0.08) {
-    const colorKey = metrics.colorCast.bias >= 0 ? 'summary_color_warm' : 'summary_color_cool';
-    segments.push(dict[colorKey]);
-  } else {
-    segments.push(dict['summary_color_balanced']);
-  }
-
-  if (metrics.leadingLines.strength > 0.35) {
-    const template = dict['summary_leading_lines'] || '';
-    segments.push(template.replace('{{angle}}', formatters.degrees(Math.abs(metrics.leadingLines.angle))));
+  if (featureShadow) {
+    const needsLift = metrics.shadowClipping > 0.02 || metrics.exposure < 120;
+    segments.push(needsLift ? dict['summary_shadow_lifted'] : dict['summary_shadow_ok']);
   }
 
   const items = segments.filter(Boolean);
@@ -538,35 +480,8 @@ function updateAnalysisSummary(metrics) {
 
   const fragment = document.createDocumentFragment();
   for (const segment of items) {
-    const wrapper = document.createElement('div');
-    wrapper.className = 'summary-item';
-
-    const temp = document.createElement('div');
-    temp.innerHTML = segment;
-    const strong = temp.querySelector('strong');
-
-    if (strong) {
-      const label = document.createElement('span');
-      label.className = 'summary-label';
-      label.textContent = strong.textContent.trim();
-      const text = document.createElement('span');
-      text.className = 'summary-text';
-      strong.remove();
-      const detail = temp.textContent.trim();
-      text.textContent = detail;
-      wrapper.append(label, text);
-    } else {
-      wrapper.classList.add('summary-item--single');
-      const text = document.createElement('span');
-      text.className = 'summary-text';
-      const detail = temp.textContent.trim();
-      text.textContent = detail;
-      wrapper.append(text);
-    }
-
-    fragment.appendChild(wrapper);
+    appendSummarySegment(fragment, segment);
   }
-
   analysisSummary.appendChild(fragment);
 }
 
@@ -781,38 +696,20 @@ function computeMetrics(imageData) {
   const gradY = new Float32Array(pixelCount);
   const gradient = new Float32Array(pixelCount);
 
-  const colorBalance = { r: 0, g: 0, b: 0 };
   let shadowClipped = 0;
-  let highlightClipped = 0;
   let midtoneSum = 0;
   let midtoneCount = 0;
 
   for (let i = 0; i < pixelCount; i++) {
     const idx = i * 4;
-    const r = data[idx];
-    const g = data[idx + 1];
-    const b = data[idx + 2];
-    colorBalance.r += r;
-    colorBalance.g += g;
-    colorBalance.b += b;
-    const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    const luminance = 0.2126 * data[idx] + 0.7152 * data[idx + 1] + 0.0722 * data[idx + 2];
     grayscale[i] = luminance;
     if (luminance < 12) shadowClipped++;
-    if (luminance > 243) highlightClipped++;
     if (luminance > 64 && luminance < 200) {
       midtoneSum += luminance;
       midtoneCount++;
     }
   }
-
-  colorBalance.r /= pixelCount;
-  colorBalance.g /= pixelCount;
-  colorBalance.b /= pixelCount;
-
-  let gradientSum = 0;
-  let orientationSumX = 0;
-  let orientationSumY = 0;
-  let orientationCount = 0;
 
   for (let y = 1; y < height - 1; y++) {
     for (let x = 1; x < width - 1; x++) {
@@ -826,7 +723,6 @@ function computeMetrics(imageData) {
       gradX[idx] = gx;
       gradY[idx] = gy;
       gradient[idx] = Math.hypot(gx, gy);
-      gradientSum += gradient[idx];
     }
   }
 
@@ -859,16 +755,10 @@ function computeMetrics(imageData) {
         strongCount++;
       }
       if (magnitude > horizonThreshold && y > height * 0.25 && y < height * 0.75) {
-        const gx = gradX[idx];
-        const gy = gradY[idx];
-        const angle = ((Math.atan2(gy, gx) * 180) / Math.PI) + 90;
+        const angle = ((Math.atan2(gradY[idx], gradX[idx]) * 180) / Math.PI) + 90;
         const normalized = ((angle + 180) % 180) - 90;
         horizonAngle += normalized * magnitude;
         horizonWeight += magnitude;
-        const orientation = Math.atan2(gy, gx);
-        orientationSumX += Math.cos(2 * orientation) * magnitude;
-        orientationSumY += Math.sin(2 * orientation) * magnitude;
-        orientationCount += magnitude;
       }
     }
   }
@@ -878,40 +768,13 @@ function computeMetrics(imageData) {
     subjectRect: null,
     subjectCenter: { x: width / 2, y: height / 2 },
     subjectOffset: { x: 0, y: 0 },
-    subjectSize: 0,
     horizonAngle: horizonWeight ? horizonAngle / horizonWeight : 0,
     horizonLine: null,
     ruleOfThirdsScore: 0,
-    sharpnessVariance: 0,
     exposure: stats.mean,
-    contrast: stats.std,
-    saturation: 0,
-    colorBalance,
-    foregroundBackground: 0,
     shadowClipping: shadowClipped / pixelCount,
-    highlightClipping: highlightClipped / pixelCount,
-    midtoneBalance: midtoneCount ? midtoneSum / (midtoneCount * 255) : stats.mean / 255,
-    colorCast: { bias: 0, warmBias: 0, coolBias: 0, strength: 0 },
-    leadingLines: { angle: 0, strength: 0 },
-    textureStrength: gradientSum / Math.max(1, pixelCount * 255),
-    feedback: []
+    midtoneBalance: midtoneCount ? midtoneSum / (midtoneCount * 255) : stats.mean / 255
   };
-
-  const avgColor = (colorBalance.r + colorBalance.g + colorBalance.b) / 3;
-  const warmBias = colorBalance.r - avgColor;
-  const coolBias = colorBalance.b - avgColor;
-  metrics.colorCast = {
-    bias: warmBias - coolBias,
-    warmBias,
-    coolBias,
-    strength: Math.max(Math.abs(warmBias), Math.abs(coolBias)) / 255
-  };
-
-  if (orientationCount > 0) {
-    const strength = Math.hypot(orientationSumX, orientationSumY) / orientationCount;
-    const angle = (Math.atan2(orientationSumY, orientationSumX) / 2) * (180 / Math.PI);
-    metrics.leadingLines = { angle, strength };
-  }
 
   if (strongCount > 50) {
     const widthRect = maxX - minX;
@@ -922,15 +785,11 @@ function computeMetrics(imageData) {
       width: Math.min(width, widthRect + 8),
       height: Math.min(height, heightRect + 8)
     };
-    metrics.subjectCenter = {
-      x: sumX / strongCount,
-      y: sumY / strongCount
-    };
+    metrics.subjectCenter = { x: sumX / strongCount, y: sumY / strongCount };
     metrics.subjectOffset = {
       x: metrics.subjectCenter.x / width - 0.5,
       y: metrics.subjectCenter.y / height - 0.5
     };
-    metrics.subjectSize = (widthRect * heightRect) / (width * height);
   }
 
   const thirdsX = [width / 3, (2 * width) / 3];
@@ -938,41 +797,6 @@ function computeMetrics(imageData) {
   const nearestX = Math.min(...thirdsX.map(x => Math.abs(metrics.subjectCenter.x - x)));
   const nearestY = Math.min(...thirdsY.map(y => Math.abs(metrics.subjectCenter.y - y)));
   metrics.ruleOfThirdsScore = 1 - (nearestX / width + nearestY / height);
-
-  let sharpnessAccumulator = 0;
-  for (let i = 0; i < gradient.length; i++) {
-    sharpnessAccumulator += gradient[i] * gradient[i];
-  }
-  metrics.sharpnessVariance = sharpnessAccumulator / gradient.length;
-
-  let saturationSum = 0;
-  for (let i = 0; i < pixelCount; i++) {
-    const idx = i * 4;
-    const r = data[idx] / 255;
-    const g = data[idx + 1] / 255;
-    const b = data[idx + 2] / 255;
-    const max = Math.max(r, g, b);
-    const min = Math.min(r, g, b);
-    saturationSum += max - min;
-  }
-  metrics.saturation = (saturationSum / pixelCount) * 255;
-
-  const half = Math.floor(height / 2);
-  let topSum = 0;
-  let bottomSum = 0;
-  for (let y = 0; y < half; y++) {
-    for (let x = 0; x < width; x++) {
-      topSum += grayscale[y * width + x];
-    }
-  }
-  for (let y = half; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      bottomSum += grayscale[y * width + x];
-    }
-  }
-  const topMean = topSum / (half * width);
-  const bottomMean = bottomSum / (Math.max(1, height - half) * width);
-  metrics.foregroundBackground = bottomMean / Math.max(1, topMean);
 
   const center = { x: width / 2, y: height / 2 };
   const angleRad = (metrics.horizonAngle * Math.PI) / 180;
@@ -984,259 +808,23 @@ function computeMetrics(imageData) {
     { x: center.x + dx / 2, y: center.y + dy / 2 }
   ];
 
-  const feedback = new Set();
-  if (Math.abs(metrics.horizonAngle) > 1.5) {
-    feedback.add('feedback_rotation');
-  }
-  if (metrics.subjectRect && metrics.ruleOfThirdsScore < 0.6) {
-    feedback.add('feedback_crop');
-  }
-  if (metrics.exposure < 110 && metrics.shadowClipping < 0.03) {
-    feedback.add('feedback_exposure');
-  }
-  if (metrics.highlightClipping > 0.035 || metrics.exposure > 165) {
-    feedback.add('feedback_highlights');
-  }
-  if (metrics.shadowClipping > 0.035) {
-    feedback.add('feedback_shadows');
-  }
-  if (metrics.contrast < 45 || metrics.textureStrength < 0.08) {
-    feedback.add('feedback_contrast');
-    feedback.add('feedback_local_contrast');
-  }
-  if (metrics.saturation < 50) {
-    feedback.add('feedback_saturation');
-    feedback.add('feedback_vibrance');
-  }
-  if (metrics.sharpnessVariance < 120) {
-    feedback.add('feedback_sharpness');
-  }
-  if (metrics.foregroundBackground < 0.8 || metrics.foregroundBackground > 1.2) {
-    feedback.add('feedback_balance');
-  }
-  if (metrics.colorCast.strength > 0.08) {
-    if (metrics.colorCast.bias >= 0) {
-      feedback.add('feedback_color_warm');
-    } else {
-      feedback.add('feedback_color_cool');
-    }
-  }
-  if (metrics.leadingLines.strength < 0.18 && metrics.subjectRect) {
-    feedback.add('feedback_leading_lines');
-  }
-  if (metrics.subjectSize < 0.14) {
-    feedback.add('feedback_vignette');
-  }
-  if (feedback.size === 0) {
-    feedback.add('feedback_good');
-  }
-  metrics.feedback = Array.from(feedback);
-
   return metrics;
 }
 
-function improveImage(baseCanvas, metrics) {
-  const width = baseCanvas.width;
-  const height = baseCanvas.height;
-  const crop = computeCropBox(width, height, metrics);
-
-  const cropCanvas = document.createElement('canvas');
-  cropCanvas.width = crop.width;
-  cropCanvas.height = crop.height;
-  const cropCtx = cropCanvas.getContext('2d');
-  cropCtx.drawImage(baseCanvas, crop.x, crop.y, crop.width, crop.height, 0, 0, crop.width, crop.height);
-
-  const leveledAngle = clamp(metrics.horizonAngle, -18, 18);
-  const rotation = (-leveledAngle * Math.PI) / 180;
-  const rotatedCanvas = rotateCanvas(cropCanvas, rotation);
-
-  const cropCenter = { x: crop.width / 2, y: crop.height / 2 };
-  const focusRelative = {
-    x: crop.focus.x - cropCenter.x,
-    y: crop.focus.y - cropCenter.y
-  };
-  const rotatedFocus = {
-    x: rotatedCanvas.width / 2 + focusRelative.x * Math.cos(rotation) - focusRelative.y * Math.sin(rotation),
-    y: rotatedCanvas.height / 2 + focusRelative.x * Math.sin(rotation) + focusRelative.y * Math.cos(rotation)
-  };
-
-  const perspective = applySubtlePerspective(rotatedCanvas, metrics);
-  const perspectiveFocus = {
-    x: perspective.margin + rotatedFocus.x + perspective.skewX * rotatedFocus.y,
-    y: perspective.margin + rotatedFocus.y + perspective.skewY * rotatedFocus.x
-  };
-
-  const finalCanvas = document.createElement('canvas');
-  finalCanvas.width = crop.width;
-  finalCanvas.height = crop.height;
-  const finalCtx = finalCanvas.getContext('2d');
-
-  const distortion = Math.max(Math.abs(perspective.skewX), Math.abs(perspective.skewY));
-  const rotationInfluence = Math.abs(rotation);
-  const zoomPadding = rotationInfluence * 0.9 + distortion * 1.35 + (metrics.subjectSize < 0.18 ? 0.18 : 0.1);
-  const extraScale = 1 + Math.min(0.42, Math.max(0.12, zoomPadding + 0.04));
-  const availableWidth = perspective.canvas.width;
-  const availableHeight = perspective.canvas.height;
-  const targetAspect = crop.width / crop.height;
-
-  const contentBounds = computeContentBounds(perspective.canvas, 4);
-  let sampleX = 0;
-  let sampleY = 0;
-  let sampleWidth = crop.width * extraScale;
-  let sampleHeight = crop.height * extraScale;
-
-  if (contentBounds) {
-    const insetBaseX = Math.max(12, contentBounds.width * (0.08 + rotationInfluence * 0.16 + distortion * 0.22));
-    const insetBaseY = Math.max(12, contentBounds.height * (0.08 + rotationInfluence * 0.16 + distortion * 0.22));
-
-    let safeX = clamp(contentBounds.x + insetBaseX, 0, availableWidth - 1);
-    let safeY = clamp(contentBounds.y + insetBaseY, 0, availableHeight - 1);
-    let safeWidth = Math.max(1, contentBounds.width - insetBaseX * 2);
-    let safeHeight = Math.max(1, contentBounds.height - insetBaseY * 2);
-
-    if (safeX + safeWidth > availableWidth) {
-      safeWidth = availableWidth - safeX;
-    }
-    if (safeY + safeHeight > availableHeight) {
-      safeHeight = availableHeight - safeY;
-    }
-
-    const usableWidth = Math.max(1, safeWidth * 0.94);
-    const usableHeight = Math.max(1, safeHeight * 0.94);
-
-    let candidateWidth = Math.min(usableWidth, crop.width * extraScale * 0.94);
-    let candidateHeight = candidateWidth / targetAspect;
-
-    if (candidateHeight > usableHeight) {
-      candidateHeight = Math.min(usableHeight, crop.height * extraScale * 0.94);
-      candidateWidth = candidateHeight * targetAspect;
-    }
-
-    sampleWidth = Math.max(1, candidateWidth);
-    sampleHeight = Math.max(1, candidateHeight);
-
-    const halfWidth = sampleWidth / 2;
-    const halfHeight = sampleHeight / 2;
-    const minFocusX = safeX + halfWidth;
-    const maxFocusX = safeX + usableWidth - halfWidth;
-    const minFocusY = safeY + halfHeight;
-    const maxFocusY = safeY + usableHeight - halfHeight;
-
-    const focusX = usableWidth <= sampleWidth
-      ? safeX + (usableWidth - sampleWidth) / 2 + halfWidth
-      : clamp(perspectiveFocus.x, minFocusX, maxFocusX);
-    const focusY = usableHeight <= sampleHeight
-      ? safeY + (usableHeight - sampleHeight) / 2 + halfHeight
-      : clamp(perspectiveFocus.y, minFocusY, maxFocusY);
-
-    sampleX = clamp(focusX - halfWidth, safeX, safeX + usableWidth - sampleWidth);
-    sampleY = clamp(focusY - halfHeight, safeY, safeY + usableHeight - sampleHeight);
-  } else {
-    const widthMargin = Math.max(0, (availableWidth - crop.width) / 2);
-    const heightMargin = Math.max(0, (availableHeight - crop.height) / 2);
-    const guardX = Math.min(
-      availableWidth / 2 - 2,
-      Math.max(16, widthMargin * 0.7 + rotationInfluence * availableWidth * 0.24 + distortion * availableWidth * 0.34)
-    );
-    const guardY = Math.min(
-      availableHeight / 2 - 2,
-      Math.max(16, heightMargin * 0.7 + rotationInfluence * availableHeight * 0.24 + distortion * availableHeight * 0.34)
-    );
-    const maxWidth = Math.max(crop.width, availableWidth - guardX * 2);
-    const maxHeight = Math.max(crop.height, availableHeight - guardY * 2);
-    sampleWidth = Math.min(maxWidth, crop.width * extraScale * 0.94);
-    sampleHeight = Math.min(maxHeight, crop.height * extraScale * 0.94);
-    sampleX = (availableWidth - sampleWidth) / 2;
-    sampleY = (availableHeight - sampleHeight) / 2;
+function buildImproved(baseCanvas, metrics) {
+  let canvas = cloneCanvas(baseCanvas);
+  if (featureComposition) {
+    canvas = applyComposition(canvas, metrics);
   }
-
-  finalCtx.drawImage(
-    perspective.canvas,
-    sampleX,
-    sampleY,
-    sampleWidth,
-    sampleHeight,
-    0,
-    0,
-    crop.width,
-    crop.height
-  );
-
-  const focusPoint = {
-    x: clamp(((perspectiveFocus.x - sampleX) / sampleWidth) * crop.width, 0, crop.width),
-    y: clamp(((perspectiveFocus.y - sampleY) / sampleHeight) * crop.height, 0, crop.height)
-  };
-
-  applyToneAndColorAdjustments(finalCanvas, metrics, focusPoint);
-  const clarityAmount = metrics.textureStrength < 0.08 ? 0.038 : metrics.textureStrength < 0.12 ? 0.032 : 0.026;
-  applyLocalContrast(finalCanvas, clarityAmount);
-  const vignetteStrength = metrics.subjectSize < 0.12 ? 0.12 : metrics.subjectSize < 0.25 ? 0.08 : 0.05;
-  applyVignette(finalCanvas, vignetteStrength, focusPoint);
-
-  return fillCanvasGutters(finalCanvas);
-}
-
-function computeCropBox(width, height, metrics) {
-  const aspectPreference = width >= height ? 3 / 2 : 4 / 5;
-  const subjectMargin = metrics.subjectRect ? Math.max(0.1, 0.28 - metrics.subjectSize * 1.2) : 0.16;
-  let cropWidth = Math.round(width * (1 - subjectMargin));
-  let cropHeight = Math.round(height * (1 - subjectMargin));
-
-  if (cropWidth / cropHeight > aspectPreference) {
-    cropWidth = Math.round(cropHeight * aspectPreference);
-  } else {
-    cropHeight = Math.round(cropWidth / aspectPreference);
+  if (featureShadow) {
+    applyShadowLift(canvas, metrics);
   }
-
-  cropWidth = Math.min(cropWidth, width);
-  cropHeight = Math.min(cropHeight, height);
-
-  const baseX = metrics.subjectRect ? metrics.subjectCenter.x : width / 2;
-  const baseY = metrics.subjectRect ? metrics.subjectCenter.y : height / 2;
-  const horizontalBias = metrics.subjectRect
-    ? metrics.subjectCenter.x < width / 2
-      ? 0.32
-      : 0.68
-    : 0.5;
-  const verticalBias = metrics.subjectRect
-    ? metrics.subjectCenter.y < height / 2
-      ? 0.36
-      : 0.64
-    : 0.5;
-  const offsetInfluenceX = metrics.subjectOffset.x * width * 0.12;
-  const offsetInfluenceY = metrics.subjectOffset.y * height * 0.12;
-  const targetCenterX = baseX - cropWidth * (horizontalBias - 0.5) + offsetInfluenceX;
-  const targetCenterY = baseY - cropHeight * (verticalBias - 0.5) + offsetInfluenceY;
-  const alignmentStrengthX = metrics.subjectRect ? 0.7 : 0.45;
-  const alignmentStrengthY = metrics.subjectRect ? 0.55 : 0.4;
-  const blendedCenterX = baseX * (1 - alignmentStrengthX) + targetCenterX * alignmentStrengthX;
-  const blendedCenterY = baseY * (1 - alignmentStrengthY) + targetCenterY * alignmentStrengthY;
-
-  const centerX = clamp(blendedCenterX, cropWidth / 2, width - cropWidth / 2);
-  const centerY = clamp(blendedCenterY, cropHeight / 2, height - cropHeight / 2);
-
-  const x = Math.round(centerX - cropWidth / 2);
-  const y = Math.round(centerY - cropHeight / 2);
-
-  return {
-    x,
-    y,
-    width: cropWidth,
-    height: cropHeight,
-    focus: {
-      x: metrics.subjectRect ? metrics.subjectCenter.x - x : cropWidth / 2,
-      y: metrics.subjectRect ? metrics.subjectCenter.y - y : cropHeight / 2
-    }
-  };
+  return canvas;
 }
 
 function rotateCanvas(sourceCanvas, rotation) {
   if (Math.abs(rotation) < 0.002) {
-    const clone = document.createElement('canvas');
-    clone.width = sourceCanvas.width;
-    clone.height = sourceCanvas.height;
-    clone.getContext('2d').drawImage(sourceCanvas, 0, 0);
-    return clone;
+    return cloneCanvas(sourceCanvas);
   }
   const width = sourceCanvas.width;
   const height = sourceCanvas.height;
@@ -1254,358 +842,147 @@ function rotateCanvas(sourceCanvas, rotation) {
   return rotatedCanvas;
 }
 
-function applySubtlePerspective(canvas, metrics) {
-  const width = canvas.width;
-  const height = canvas.height;
-  const maxDimension = Math.max(width, height);
-  const attitude = Math.max(Math.abs(metrics.subjectOffset.x), Math.abs(metrics.subjectOffset.y));
-  const angleInfluence = Math.min(0.18, Math.abs(metrics.horizonAngle) * 0.01);
-  const offsetInfluence = Math.min(0.12, attitude * 0.18);
-  const marginRatio = clamp(0.08 + angleInfluence * 0.6 + offsetInfluence * 0.8, 0.08, 0.18);
-  const margin = Math.round(maxDimension * marginRatio);
-  const skewX = clamp(metrics.subjectOffset.x * 0.05 + metrics.horizonAngle * 0.0012, -0.12, 0.12);
-  const skewY = clamp(metrics.subjectOffset.y * 0.045, -0.12, 0.12);
-  const warpedCanvas = document.createElement('canvas');
-  warpedCanvas.width = width + margin * 2;
-  warpedCanvas.height = height + margin * 2;
-  const ctx = warpedCanvas.getContext('2d');
-  ctx.translate(margin, margin);
-  ctx.transform(1, skewY, skewX, 1, 0, 0);
-  ctx.drawImage(canvas, 0, 0);
-  return { canvas: warpedCanvas, skewX, skewY, margin };
+// Largest axis-aligned rectangle (same aspect ratio as w×h) that fits inside a
+// w×h rectangle rotated by `angle` radians, leaving no empty corners.
+function largestRotatedRect(w, h, angle) {
+  if (w <= 0 || h <= 0) return { w: 0, h: 0 };
+  const a = Math.abs(angle);
+  const sinA = Math.abs(Math.sin(a));
+  const cosA = Math.abs(Math.cos(a));
+  const widthIsLonger = w >= h;
+  const sideLong = widthIsLonger ? w : h;
+  const sideShort = widthIsLonger ? h : w;
+
+  let wr;
+  let hr;
+  if (sideShort <= 2 * sinA * cosA * sideLong || Math.abs(sinA - cosA) < 1e-10) {
+    const x = 0.5 * sideShort;
+    if (widthIsLonger) {
+      wr = sinA > 0 ? x / sinA : w;
+      hr = cosA > 0 ? x / cosA : h;
+    } else {
+      wr = cosA > 0 ? x / cosA : w;
+      hr = sinA > 0 ? x / sinA : h;
+    }
+  } else {
+    const cos2a = cosA * cosA - sinA * sinA;
+    wr = (w * cosA - h * sinA) / cos2a;
+    hr = (h * cosA - w * sinA) / cos2a;
+  }
+  return { w: Math.max(1, wr), h: Math.max(1, hr) };
 }
 
-function toneCurve(value, options = {}) {
-  const {
-    shadowBoost = 0,
-    highlightPull = 0,
-    midtoneBias = 0,
-    blackLift = 0,
-    brightnessLift = 0
-  } = options;
-  let v = value;
-  if (shadowBoost > 0 && v < 0.6) {
-    const influence = (0.6 - v) / 0.6;
-    v += influence * shadowBoost * 0.35;
-  }
-  if (blackLift > 0 && v < 0.4) {
-    const influence = (0.4 - v) / 0.4;
-    v += influence * blackLift * 0.55;
-  }
-  if (highlightPull > 0 && v > 0.6) {
-    const influence = (v - 0.6) / 0.4;
-    v -= influence * highlightPull * 0.5;
-  }
-  v += midtoneBias;
-  v += brightnessLift;
-  return Math.min(1, Math.max(0, v));
-}
-
-function computeContentBounds(canvas, step = 4) {
-  const { width, height } = canvas;
-  if (!width || !height) {
-    return null;
-  }
-  const ctx = canvas.getContext('2d');
-  const { data } = ctx.getImageData(0, 0, width, height);
-  let minX = width;
-  let maxX = -1;
-  let minY = height;
-  let maxY = -1;
-  const alphaThreshold = 8;
-
-  for (let y = 0; y < height; y += step) {
-    const rowOffset = y * width * 4;
-    for (let x = 0; x < width; x += step) {
-      if (data[rowOffset + x * 4 + 3] > alphaThreshold) {
-        if (x < minX) minX = x;
-        if (x > maxX) maxX = x;
-        if (y < minY) minY = y;
-        if (y > maxY) maxY = y;
-      }
-    }
-  }
-
-  if (maxX < minX || maxY < minY) {
-    return null;
-  }
-
-  const refine = bounds => {
-    const startX = Math.max(0, bounds.x - step);
-    const endX = Math.min(width - 1, bounds.x + bounds.width + step);
-    const startY = Math.max(0, bounds.y - step);
-    const endY = Math.min(height - 1, bounds.y + bounds.height + step);
-
-    let top = startY;
-    while (top < endY) {
-      let hasPixel = false;
-      for (let x = startX; x <= endX; x++) {
-        if (data[(top * width + x) * 4 + 3] > alphaThreshold) {
-          hasPixel = true;
-          break;
-        }
-      }
-      if (hasPixel) break;
-      top++;
-    }
-
-    let bottom = endY;
-    while (bottom > top) {
-      let hasPixel = false;
-      for (let x = startX; x <= endX; x++) {
-        if (data[(bottom * width + x) * 4 + 3] > alphaThreshold) {
-          hasPixel = true;
-          break;
-        }
-      }
-      if (hasPixel) break;
-      bottom--;
-    }
-
-    let left = startX;
-    while (left < endX) {
-      let hasPixel = false;
-      for (let y = top; y <= bottom; y++) {
-        if (data[(y * width + left) * 4 + 3] > alphaThreshold) {
-          hasPixel = true;
-          break;
-        }
-      }
-      if (hasPixel) break;
-      left++;
-    }
-
-    let right = endX;
-    while (right > left) {
-      let hasPixel = false;
-      for (let y = top; y <= bottom; y++) {
-        if (data[(y * width + right) * 4 + 3] > alphaThreshold) {
-          hasPixel = true;
-          break;
-        }
-      }
-      if (hasPixel) break;
-      right--;
-    }
-
-    return {
-      x: left,
-      y: top,
-      width: Math.max(1, right - left + 1),
-      height: Math.max(1, bottom - top + 1)
-    };
+function rotatePoint(px, py, w, h, rw, rh, rotation) {
+  const dx = px - w / 2;
+  const dy = py - h / 2;
+  const cos = Math.cos(rotation);
+  const sin = Math.sin(rotation);
+  return {
+    x: rw / 2 + cos * dx - sin * dy,
+    y: rh / 2 + sin * dx + cos * dy
   };
-
-  return refine({
-    x: minX,
-    y: minY,
-    width: Math.max(1, maxX - minX + 1),
-    height: Math.max(1, maxY - minY + 1)
-  });
 }
 
-function fillCanvasGutters(canvas) {
-  const bounds = computeContentBounds(canvas, 1);
-  if (!bounds) {
-    return canvas;
-  }
+// Shift the leveling crop toward a thirds line — but only along an axis where
+// the whole subject stays inside the crop, so nothing important gets cut.
+function nudgeToThirds(params) {
+  const { rotation, w, h, rw, rh, cropX, cropY, cropW, cropH, metrics } = params;
+  const center = rotatePoint(metrics.subjectCenter.x, metrics.subjectCenter.y, w, h, rw, rh, rotation);
+  const r = metrics.subjectRect;
+  const corners = [
+    [r.x, r.y],
+    [r.x + r.width, r.y],
+    [r.x, r.y + r.height],
+    [r.x + r.width, r.y + r.height]
+  ].map(([x, y]) => rotatePoint(x, y, w, h, rw, rh, rotation));
+  const minSx = Math.min(...corners.map(p => p.x));
+  const maxSx = Math.max(...corners.map(p => p.x));
+  const minSy = Math.min(...corners.map(p => p.y));
+  const maxSy = Math.max(...corners.map(p => p.y));
 
-  const tolerance = 1;
-  if (
-    bounds.x <= tolerance &&
-    bounds.y <= tolerance &&
-    bounds.width >= canvas.width - tolerance * 2 &&
-    bounds.height >= canvas.height - tolerance * 2
-  ) {
-    return canvas;
-  }
+  const strength = 0.6;
+  const thirdsX = [cropW / 3, (2 * cropW) / 3];
+  const thirdsY = [cropH / 3, (2 * cropH) / 3];
 
-  const filled = document.createElement('canvas');
-  filled.width = canvas.width;
-  filled.height = canvas.height;
-  const ctx = filled.getContext('2d');
-  ctx.drawImage(
-    canvas,
-    bounds.x,
-    bounds.y,
-    bounds.width,
-    bounds.height,
-    0,
-    0,
-    filled.width,
-    filled.height
-  );
-  return filled;
+  const relX = center.x - cropX;
+  const relY = center.y - cropY;
+  const targetX = thirdsX.reduce((a, b) => (Math.abs(b - relX) < Math.abs(a - relX) ? b : a));
+  const targetY = thirdsY.reduce((a, b) => (Math.abs(b - relY) < Math.abs(a - relY) ? b : a));
+
+  let candidateX = cropX + ((center.x - targetX) - cropX) * strength;
+  let candidateY = cropY + ((center.y - targetY) - cropY) * strength;
+  candidateX = clampRange(candidateX, 0, rw - cropW);
+  candidateY = clampRange(candidateY, 0, rh - cropH);
+
+  let outX = cropX;
+  let outY = cropY;
+  if (minSx >= candidateX && maxSx <= candidateX + cropW) outX = candidateX;
+  if (minSy >= candidateY && maxSy <= candidateY + cropH) outY = candidateY;
+  return { x: outX, y: outY };
 }
 
-function applyToneAndColorAdjustments(canvas, metrics, focusPoint) {
+function applyComposition(sourceCanvas, metrics) {
+  const w = sourceCanvas.width;
+  const h = sourceCanvas.height;
+  const angleDeg = clamp(metrics.horizonAngle, -18, 18);
+  const rotation = (-angleDeg * Math.PI) / 180;
+
+  const rotated = rotateCanvas(sourceCanvas, rotation);
+  const rw = rotated.width;
+  const rh = rotated.height;
+
+  const inscribed = largestRotatedRect(w, h, rotation);
+  const cropW = Math.max(1, Math.min(rw, Math.floor(inscribed.w)));
+  const cropH = Math.max(1, Math.min(rh, Math.floor(inscribed.h)));
+
+  let cropX = (rw - cropW) / 2;
+  let cropY = (rh - cropH) / 2;
+
+  if (metrics.subjectRect) {
+    const nudged = nudgeToThirds({ rotation, w, h, rw, rh, cropX, cropY, cropW, cropH, metrics });
+    cropX = nudged.x;
+    cropY = nudged.y;
+  }
+
+  const out = document.createElement('canvas');
+  out.width = cropW;
+  out.height = cropH;
+  out.getContext('2d').drawImage(rotated, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+  return out;
+}
+
+function applyShadowLift(canvas, metrics) {
   const ctx = canvas.getContext('2d');
   const { width, height } = canvas;
   const imageData = ctx.getImageData(0, 0, width, height);
   const { data } = imageData;
-  const focus = focusPoint || { x: width / 2, y: height / 2 };
-  const focusRadius = Math.min(
-    Math.max(width, height),
-    Math.min(width, height) * (metrics.subjectSize > 0 ? Math.min(0.58, Math.max(0.32, Math.sqrt(metrics.subjectSize) * 1.1)) : 0.42)
-  );
-  const focusLift = metrics.subjectSize < 0.16 ? 0.038 : 0.028;
-  const brightnessLift = metrics.exposure < 120 ? 0.009 : metrics.exposure < 150 ? 0.007 : metrics.exposure < 180 ? 0.004 : 0.0025;
-  const shadowBoost = 0.028 + (metrics.shadowClipping > 0.035 ? 0.022 : metrics.shadowClipping > 0.02 ? 0.014 : 0.008);
-  const blackLift = 0.02 + (metrics.shadowClipping > 0.035 ? 0.018 : metrics.shadowClipping > 0.02 ? 0.012 : 0.006);
-  const highlightPull = Math.min(0.026, metrics.highlightClipping > 0.035 ? 0.026 : metrics.highlightClipping > 0.02 ? 0.018 : 0.01);
-  const midtoneBias = metrics.midtoneBalance < 0.48 ? 0.008 : metrics.midtoneBalance > 0.6 ? -0.006 : 0.004;
-  const colorBias = metrics.colorCast.bias;
-  const castStrength = Math.min(0.045, Math.abs(colorBias) / 900);
-  let warmShift = colorBias >= 0 ? castStrength : 0;
-  let coolShift = colorBias < 0 ? castStrength : 0;
-  const naturalWarmth = colorBias <= 16 ? 0.0025 : 0.0015;
-  const saturationTarget = metrics.subjectRect ? 118 : 110;
-  const saturationDelta = metrics.saturation - saturationTarget;
-  let vibrance = 0;
-  if (saturationDelta < -18) {
-    vibrance = Math.min(0.012, Math.max(0.004, (-saturationDelta) / 540));
-  } else if (saturationDelta > 26) {
-    vibrance = -Math.min(0.012, Math.max(0.004, saturationDelta / 620));
-  } else if (Math.abs(saturationDelta) <= 12 && metrics.textureStrength < 0.1) {
-    vibrance = 0.006;
-  }
-  const gamma = 1;
 
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const idx = (y * width + x) * 4;
-      let r = data[idx];
-      let g = data[idx + 1];
-      let b = data[idx + 2];
+  const clip = metrics.shadowClipping;
+  const dark = Math.max(0, (130 - metrics.exposure) / 130);
+  // Auto lift amount: always a gentle base, stronger when crushed/underexposed.
+  const amount = Math.min(0.6, 0.18 + clip * 1.8 + dark * 0.45);
 
-      const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-      const tone = luminance / 255;
-      const mapped = toneCurve(tone, {
-        shadowBoost,
-        highlightPull,
-        midtoneBias,
-        blackLift,
-        brightnessLift
-      });
-      const toneScale = tone > 0 ? mapped / tone : mapped;
-      if (toneScale > 0) {
-        r = clamp(r * toneScale);
-        g = clamp(g * toneScale);
-        b = clamp(b * toneScale);
-      }
-
-      if (brightnessLift > 0) {
-        const lift = brightnessLift * 0.45;
-        r = clamp(r + (255 - r) * lift);
-        g = clamp(g + (255 - g) * lift);
-        b = clamp(b + (255 - b) * lift);
-      }
-
-      if (blackLift > 0 && tone < 0.45) {
-        const blackFactor = (0.45 - tone) / 0.45;
-        const blackGain = blackLift * blackFactor * 14;
-        r = clamp(r + blackGain);
-        g = clamp(g + blackGain);
-        b = clamp(b + blackGain);
-      }
-
-      const dx = x - focus.x;
-      const dy = y - focus.y;
-      const distance = Math.hypot(dx, dy);
-      const focusInfluence = focusRadius ? Math.max(0, 1 - distance / focusRadius) : 0;
-      if (focusInfluence > 0) {
-        const lift = 1 + focusInfluence * focusLift;
-        r = clamp(r * lift);
-        g = clamp(g * lift);
-        b = clamp(b * lift);
-      }
-
-      if (gamma !== 1) {
-        r = clamp(Math.pow(r / 255, gamma) * 255);
-        g = clamp(Math.pow(g / 255, gamma) * 255);
-        b = clamp(Math.pow(b / 255, gamma) * 255);
-      }
-
-      if (warmShift > 0) {
-        r = clamp(r - warmShift * 9);
-        b = clamp(b + warmShift * 6);
-      }
-      if (coolShift > 0) {
-        r = clamp(r + coolShift * 6);
-        b = clamp(b - coolShift * 9);
-      }
-
-      const warmthInfluence = Math.max(0, naturalWarmth - warmShift * 0.3);
-      if (warmthInfluence > 0) {
-        r = clamp(r + warmthInfluence * 7);
-        g = clamp(g + warmthInfluence * 3);
-        b = clamp(b - warmthInfluence * 8);
-      }
-
-      if (vibrance !== 0) {
-        const avg = (r + g + b) / 3;
-        const saturationWeight = Math.min(
-          1,
-          (Math.abs(r - avg) + Math.abs(g - avg) + Math.abs(b - avg)) / 255
-        );
-        const primaryBoost = 1 + vibrance * saturationWeight;
-        const secondaryBoost = 1 + vibrance * saturationWeight * 0.6;
-        r = clamp(avg + (r - avg) * primaryBoost);
-        g = clamp(avg + (g - avg) * secondaryBoost);
-        b = clamp(avg + (b - avg) * primaryBoost);
-      }
-
-      data[idx] = r;
-      data[idx + 1] = g;
-      data[idx + 2] = b;
-    }
-  }
-
-  ctx.putImageData(imageData, 0, 0);
-}
-
-function applyLocalContrast(canvas, amount = 0.03) {
-  if (!amount || amount <= 0) return;
-  const { width, height } = canvas;
-  if (!width || !height) return;
-  const ctx = canvas.getContext('2d');
-  const original = ctx.getImageData(0, 0, width, height);
-  const tempCanvas = document.createElement('canvas');
-  tempCanvas.width = width;
-  tempCanvas.height = height;
-  const tempCtx = tempCanvas.getContext('2d');
-  tempCtx.filter = 'blur(2px)';
-  tempCtx.drawImage(canvas, 0, 0, width, height);
-  const blurred = tempCtx.getImageData(0, 0, width, height);
-  const data = original.data;
-  const blurData = blurred.data;
   for (let i = 0; i < data.length; i += 4) {
-    data[i] = clamp(data[i] + (data[i] - blurData[i]) * amount);
-    data[i + 1] = clamp(data[i + 1] + (data[i + 1] - blurData[i + 1]) * amount);
-    data[i + 2] = clamp(data[i + 2] + (data[i + 2] - blurData[i + 2]) * amount);
-  }
-  ctx.putImageData(original, 0, 0);
-}
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
 
-function applyVignette(canvas, strength = 0.1, focusPoint) {
-  if (!strength || strength <= 0) return;
-  const ctx = canvas.getContext('2d');
-  const { width, height } = canvas;
-  const imageData = ctx.getImageData(0, 0, width, height);
-  const { data } = imageData;
-  const center = focusPoint || { x: width / 2, y: height / 2 };
-  const maxDistance = Math.hypot(Math.max(center.x, width - center.x), Math.max(center.y, height - center.y));
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const idx = (y * width + x) * 4;
-      const dist = Math.hypot(x - center.x, y - center.y);
-      const influence = Math.min(1, dist / maxDistance);
-      const factor = 1 - strength * Math.pow(influence, 1.4);
-      data[idx] = clamp(data[idx] * factor);
-      data[idx + 1] = clamp(data[idx + 1] * factor);
-      data[idx + 2] = clamp(data[idx + 2] * factor);
+    // Shadow mask: full strength at black, fading to zero by mid-tones (0.6).
+    const mask = Math.max(0, 1 - lum / 0.6);
+    let targetLum = lum + mask * amount * (0.4 + 0.6 * (1 - lum));
+    // Extra recovery for the deepest, near-crushed blacks.
+    targetLum += Math.max(0, 0.16 - lum) * amount * 0.8;
+    targetLum = clamp01(targetLum);
+
+    const add = (targetLum - lum) * 255;
+    if (add > 0) {
+      data[i] = clamp(r + add);
+      data[i + 1] = clamp(g + add);
+      data[i + 2] = clamp(b + add);
     }
   }
+
   ctx.putImageData(imageData, 0, 0);
 }
 
@@ -1626,7 +1003,7 @@ async function processFile(file) {
     });
     setCanvasMeta(originalMeta, lastOriginalCanvas);
 
-    lastImprovedCanvas = improveImage(lastOriginalCanvas, currentMetrics);
+    lastImprovedCanvas = buildImproved(lastOriginalCanvas, currentMetrics);
     renderToCanvas(improvedCanvas, lastImprovedCanvas, {
       showGuides: toggleGrid.checked,
       metrics: currentMetrics,
@@ -1690,12 +1067,20 @@ function initEventListeners() {
   dropZone.addEventListener('dragleave', handleDrag);
   dropZone.addEventListener('drop', handleDrop);
   toggleGrid.addEventListener('change', refreshCanvases);
+  toggleComposition.addEventListener('change', () => {
+    featureComposition = toggleComposition.checked;
+    rebuildImproved();
+  });
+  toggleShadow.addEventListener('change', () => {
+    featureShadow = toggleShadow.checked;
+    rebuildImproved();
+  });
   resetButton.addEventListener('click', resetInterface);
   downloadButton.addEventListener('click', () => {
     if (!currentDownloadUrl) return;
     const a = document.createElement('a');
     a.href = currentDownloadUrl;
-    a.download = downloadButton.dataset.filename || 'improved-photo.png';
+    a.download = downloadButton.dataset.filename || 'fixed-photo.png';
     a.click();
   });
   langToggleButtons.forEach(btn => {
@@ -1734,6 +1119,8 @@ async function loadDictionaries() {
 
 async function init() {
   dictionaries = cloneFallback();
+  featureComposition = toggleComposition ? toggleComposition.checked : true;
+  featureShadow = toggleShadow ? toggleShadow.checked : true;
   downloadButton.disabled = true;
   translatePage();
   initEventListeners();

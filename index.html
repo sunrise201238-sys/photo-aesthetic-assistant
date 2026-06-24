@@ -60,6 +60,22 @@
             <button type="button" id="download-button" class="primary" data-i18n="download_button" disabled>Download Improved Image</button>
           </div>
         </div>
+        <div class="feature-controls">
+          <label class="feature-toggle">
+            <input type="checkbox" id="toggle-composition" checked>
+            <span class="feature-toggle-text">
+              <span class="feature-toggle-title" data-i18n="feature_composition_title">Composition</span>
+              <span class="feature-toggle-desc" data-i18n="feature_composition_desc">Level the tilt, with a gentle rule-of-thirds nudge when it won't crop the subject.</span>
+            </span>
+          </label>
+          <label class="feature-toggle">
+            <input type="checkbox" id="toggle-shadow" checked>
+            <span class="feature-toggle-text">
+              <span class="feature-toggle-title" data-i18n="feature_shadow_title">Shadow</span>
+              <span class="feature-toggle-desc" data-i18n="feature_shadow_desc">Lift dark areas and recover crushed shadow detail.</span>
+            </span>
+          </label>
+        </div>
         <div class="overlay-controls">
           <label class="toggle">
             <input type="checkbox" id="toggle-grid" checked>
@@ -69,16 +85,16 @@
         </div>
         <aside class="tip-grid">
           <article class="tip-card">
-            <h3 data-i18n="tip_subject_title">Find the subject</h3>
-            <p data-i18n="tip_subject_text">The assistant highlights the strongest contour to estimate your main subject position.</p>
+            <h3 data-i18n="tip_tilt_title">Kill the Dutch angle</h3>
+            <p data-i18n="tip_tilt_text">We detect the dominant lines, rotate the scene level, and crop the corners so there are no gaps.</p>
           </article>
           <article class="tip-card">
-            <h3 data-i18n="tip_horizon_title">Balance the horizon</h3>
-            <p data-i18n="tip_horizon_text">We detect dominant lines to level the scene and keep skies straight.</p>
+            <h3 data-i18n="tip_thirds_title">Reframe safely</h3>
+            <p data-i18n="tip_thirds_text">Within the leveling crop we nudge the subject toward a thirds line — only when nothing important gets cut.</p>
           </article>
           <article class="tip-card">
-            <h3 data-i18n="tip_color_title">Polish the tones</h3>
-            <p data-i18n="tip_color_text">Subtle exposure, contrast, and color tweaks keep the improved version natural.</p>
+            <h3 data-i18n="tip_shadow_title">Open the shadows</h3>
+            <p data-i18n="tip_shadow_text">Crushed and underexposed areas are brightened automatically while highlights stay protected.</p>
           </article>
         </aside>
       </section>
