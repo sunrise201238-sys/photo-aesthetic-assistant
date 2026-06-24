@@ -20,7 +20,7 @@
   "feature_color_title": "White balance",
   "feature_color_desc": "Neutralize a warm or cool cast for a natural white tone.",
   "feature_detail_title": "Detail",
-  "feature_detail_desc": "Remove grain and sharpen edges for crisp lines.",
+  "feature_detail_desc": "Add a touch of contrast, light sharpening, and a hint of grain.",
   "footer_note": "All processing happens locally in your browser. No uploads. No tracking.",
   "loading": "Processing photo…",
   "engine_loading": "Loading vision engine…",

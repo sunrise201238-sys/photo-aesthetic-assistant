@@ -46,7 +46,7 @@ const fallbackDictionaries = {
     "feature_color_title": "White balance",
     "feature_color_desc": "Neutralize a warm or cool cast for a natural white tone.",
     "feature_detail_title": "Detail",
-    "feature_detail_desc": "Remove grain and sharpen edges for crisp lines.",
+    "feature_detail_desc": "Add a touch of contrast, light sharpening, and a hint of grain.",
     "footer_note": "All processing happens locally in your browser. No uploads. No tracking.",
     "loading": "Processing photo…",
     "engine_loading": "Loading vision engine…",
@@ -99,7 +99,7 @@ const fallbackDictionaries = {
     "feature_color_title": "白平衡",
     "feature_color_desc": "校正偏暖或偏冷色調，呈現自然白。",
     "feature_detail_title": "細節",
-    "feature_detail_desc": "去除噪點並銳化邊緣，讓線條更清晰。",
+    "feature_detail_desc": "增加些微對比、適度銳化與少許顆粒，呈現清晰自然的質感。",
     "footer_note": "所有處理都在您的瀏覽器內進行，不需上傳、不會追蹤。",
     "loading": "影像分析中…",
     "engine_loading": "視覺引擎載入中…",
@@ -1088,44 +1088,47 @@ function blurredData(sourceCanvas, px) {
   return ctx.getImageData(0, 0, c.width, c.height).data;
 }
 
-// Detail lever: remove grain and sharpen, independent of the shadow lift.
-// De-grain with an edge-preserving smart blur (smooth flat noise, keep edges),
-// then restore definition with large-radius clarity + a mild sharpen.
+// Detail lever: a gentle "punch" — deepen blacks a touch and ease the
+// highlights for crisper-looking edges, plus a very light luminance-only
+// sharpen and a touch of grain so it stays natural (not plasticky).
+// Calibrated against a user before/after pair.
 function applyDetail(canvas) {
   const ctx = canvas.getContext('2d');
   const { width, height } = canvas;
   const imageData = ctx.getImageData(0, 0, width, height);
   const { data } = imageData;
 
-  // De-grain: blend toward the blur only in flat areas, leave edges crisp.
-  const blurD = blurredData(canvas, 1.5);
-  const den = new Uint8ClampedArray(data.length);
+  // 1) Gentle tone: deepen blacks (black point) + ease highlights (anchored at
+  //    white). Per-channel via a shared LUT.
+  const bp = 0.02; // black point
+  const hl = 0.14; // highlight ease
+  const lut = new Uint8ClampedArray(256);
+  for (let v = 0; v < 256; v++) {
+    let y = Math.min(1, Math.max(0, (v / 255 - bp) / (1 - bp)));
+    const t = Math.min(1, Math.max(0, (y - 0.5) / 0.5));
+    y = y - hl * t * (1 - y);
+    lut[v] = Math.round(Math.min(1, Math.max(0, y)) * 255);
+  }
   for (let i = 0; i < data.length; i += 4) {
-    const lt = 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
-    const lb = 0.2126 * blurD[i] + 0.7152 * blurD[i + 1] + 0.0722 * blurD[i + 2];
-    let w = 1 - (Math.abs(lt - lb) - 2) / 8; // flat area -> ~1, edge -> 0
-    w = Math.min(0.9, Math.max(0, w));
-    den[i] = data[i] * (1 - w) + blurD[i] * w;
-    den[i + 1] = data[i + 1] * (1 - w) + blurD[i + 1] * w;
-    den[i + 2] = data[i + 2] * (1 - w) + blurD[i + 2] * w;
-    den[i + 3] = 255;
+    data[i] = lut[data[i]];
+    data[i + 1] = lut[data[i + 1]];
+    data[i + 2] = lut[data[i + 2]];
   }
-  const denImg = new ImageData(den, width, height);
-  ctx.putImageData(denImg, 0, 0); // write denoised so the next blurs sample it
+  ctx.putImageData(imageData, 0, 0); // write toned so the blur samples it
 
-  // Definition: large-radius clarity (local contrast) + a mild sharpen.
-  const minSide = Math.min(width, height);
-  const blurB = blurredData(canvas, Math.max(6, minSide * 0.01));
-  const blurS = blurredData(canvas, 1);
-  for (let i = 0; i < den.length; i += 4) {
-    for (let c = 0; c < 3; c++) {
-      let v = den[i + c];
-      v += 0.45 * (v - blurB[i + c]); // clarity
-      v += 0.35 * (v - blurS[i + c]); // sharpen
-      den[i + c] = v < 0 ? 0 : v > 255 ? 255 : v;
-    }
+  // 2) Light luminance-only sharpen (no colour shift) + 3) a touch of grain.
+  const blur = blurredData(canvas, 1);
+  const sharp = 0.03;
+  const grain = 1.2;
+  for (let i = 0; i < data.length; i += 4) {
+    const l = 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
+    const lb = 0.2126 * blur[i] + 0.7152 * blur[i + 1] + 0.0722 * blur[i + 2];
+    const add = sharp * (l - lb) + (Math.random() - 0.5) * grain;
+    data[i] = clamp(data[i] + add);
+    data[i + 1] = clamp(data[i + 1] + add);
+    data[i + 2] = clamp(data[i + 2] + add);
   }
-  ctx.putImageData(denImg, 0, 0);
+  ctx.putImageData(imageData, 0, 0);
 }
 
 function applyShadowLift(canvas, metrics) {
