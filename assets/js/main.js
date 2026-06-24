@@ -9,6 +9,7 @@ const downloadButton = document.getElementById('download-button');
 const toggleGrid = document.getElementById('toggle-grid');
 const toggleComposition = document.getElementById('toggle-composition');
 const toggleShadow = document.getElementById('toggle-shadow');
+const compModeButtons = document.querySelectorAll('.comp-mode button');
 const resetButton = document.getElementById('reset-button');
 const dropZone = document.getElementById('drop-zone');
 const fileInput = document.getElementById('file-input');
@@ -35,7 +36,9 @@ const fallbackDictionaries = {
     "download_button": "Download Result",
     "toggle_grid": "Show guides",
     "feature_composition_title": "Composition",
-    "feature_composition_desc": "Level the tilt, with a gentle rule-of-thirds nudge when it won't crop the subject.",
+    "feature_composition_desc": "Straighten the tilt — level the whole scene, or snap a single object upright.",
+    "comp_mode_landscape": "Landscape",
+    "comp_mode_object": "Object",
     "feature_shadow_title": "Shadow",
     "feature_shadow_desc": "Lift dark areas and recover crushed shadow detail.",
     "footer_note": "All processing happens locally in your browser. No uploads. No tracking.",
@@ -82,7 +85,9 @@ const fallbackDictionaries = {
     "download_button": "下載結果",
     "toggle_grid": "顯示輔助線",
     "feature_composition_title": "構圖",
-    "feature_composition_desc": "校正傾斜，並在不裁切主體的前提下，輕微靠向三分線。",
+    "feature_composition_desc": "校正傾斜——可校平整個場景，或將單一物件轉正。",
+    "comp_mode_landscape": "場景",
+    "comp_mode_object": "物件",
     "feature_shadow_title": "陰影",
     "feature_shadow_desc": "提亮暗部，找回被壓死的陰影細節。",
     "footer_note": "所有處理都在您的瀏覽器內進行，不需上傳、不會追蹤。",
@@ -125,6 +130,7 @@ let lastOriginalCanvas = null;
 let lastImprovedCanvas = null;
 let featureComposition = true;
 let featureShadow = true;
+let compMode = 'landscape';
 let engineStatusState = 'loading';
 let errorTimeoutId = null;
 let dictionaryWarningShown = false;
@@ -815,13 +821,96 @@ function computeMetrics(imageData) {
     { x: center.x + dx / 2, y: center.y + dy / 2 }
   ];
 
+  metrics.subjectAngle = detectSubjectAxis(grayscale, width, height);
+
   return metrics;
+}
+
+// For Object mode: find the dominant contrasting object and return the rotation
+// (deviation from the nearest axis, in degrees) that snaps its long axis to
+// horizontal or vertical. Returns 0 when there is no clearly elongated subject
+// (round or low-contrast scenes), so Object mode is a no-op rather than a wrong
+// rotation. Validated against before/after pairs (pen fires; apples/scenes skip).
+function detectSubjectAxis(grayscale, width, height) {
+  const n = width * height;
+  const step = Math.max(1, Math.floor(n / 20000));
+  const sample = [];
+  for (let i = 0; i < n; i += step) sample.push(grayscale[i]);
+  sample.sort((a, b) => a - b);
+  const q = p => sample[Math.min(sample.length - 1, Math.max(0, Math.floor(p * (sample.length - 1))))];
+  const p2 = q(0.02);
+  const p50 = q(0.5);
+  const p98 = q(0.98);
+  const dark = p50 - p2 >= p98 - p50;
+  const threshold = dark ? (p50 + p2) / 2 : (p50 + p98) / 2;
+  const inside = dark ? v => v < threshold : v => v > threshold;
+
+  // Largest connected component of the foreground mask, accumulating the second
+  // moments needed for its orientation as we go.
+  const visited = new Uint8Array(n);
+  const stack = new Int32Array(n);
+  let best = null;
+  for (let s = 0; s < n; s++) {
+    if (visited[s]) continue;
+    visited[s] = 1;
+    if (!inside(grayscale[s])) continue;
+    let top = 0;
+    stack[top++] = s;
+    let count = 0;
+    let sx = 0;
+    let sy = 0;
+    let sxx = 0;
+    let syy = 0;
+    let sxy = 0;
+    while (top > 0) {
+      const idx = stack[--top];
+      const x = idx % width;
+      const y = (idx - x) / width;
+      count++;
+      sx += x;
+      sy += y;
+      sxx += x * x;
+      syy += y * y;
+      sxy += x * y;
+      if (x > 0) { const v = idx - 1; if (!visited[v]) { visited[v] = 1; if (inside(grayscale[v])) stack[top++] = v; } }
+      if (x < width - 1) { const v = idx + 1; if (!visited[v]) { visited[v] = 1; if (inside(grayscale[v])) stack[top++] = v; } }
+      if (y > 0) { const v = idx - width; if (!visited[v]) { visited[v] = 1; if (inside(grayscale[v])) stack[top++] = v; } }
+      if (y < height - 1) { const v = idx + width; if (!visited[v]) { visited[v] = 1; if (inside(grayscale[v])) stack[top++] = v; } }
+    }
+    if (!best || count > best.count) best = { count, sx, sy, sxx, syy, sxy };
+  }
+
+  if (!best) return 0;
+  const frac = best.count / n;
+  if (frac < 0.005 || frac > 0.6) return 0;
+  const mx = best.sx / best.count;
+  const my = best.sy / best.count;
+  const mu20 = best.sxx / best.count - mx * mx;
+  const mu02 = best.syy / best.count - my * my;
+  const mu11 = best.sxy / best.count - mx * my;
+  const angle = 0.5 * Math.atan2(2 * mu11, mu20 - mu02) * (180 / Math.PI); // (-90, 90]
+  const trace = mu20 + mu02;
+  const disc = Math.sqrt(Math.max(0, (trace * trace) / 4 - (mu20 * mu02 - mu11 * mu11)));
+  const l1 = trace / 2 + disc;
+  const l2 = trace / 2 - disc;
+  const ecc = l1 > 0 ? Math.sqrt(Math.max(0, 1 - l2 / l1)) : 0;
+  if (ecc < 0.7) return 0; // not elongated enough to be a clear linear object
+  let dev;
+  if (Math.abs(angle) <= 45) dev = angle;
+  else dev = angle > 0 ? angle - 90 : angle + 90;
+  return Math.abs(dev) >= 1.5 ? dev : 0;
 }
 
 function buildImproved(baseCanvas, metrics) {
   let canvas = cloneCanvas(baseCanvas);
   if (featureComposition) {
-    canvas = applyComposition(canvas, metrics);
+    if (compMode === 'object') {
+      // Snap the main object upright; larger angles allowed, no thirds reframe.
+      canvas = applyStraighten(canvas, metrics, metrics.subjectAngle, 45, false);
+    } else {
+      // Level the scene, with the safe rule-of-thirds nudge.
+      canvas = applyStraighten(canvas, metrics, metrics.horizonAngle, 30, true);
+    }
   }
   if (featureShadow) {
     applyShadowLift(canvas, metrics);
@@ -928,10 +1017,16 @@ function nudgeToThirds(params) {
   return { x: outX, y: outY };
 }
 
-function applyComposition(sourceCanvas, metrics) {
+// Rotate by `rawAngle` (clamped to ±maxAngle), then crop the largest inscribed
+// rectangle so the rotation leaves no blank corners. doThirds adds the safe
+// rule-of-thirds reframe (Landscape mode only).
+function applyStraighten(sourceCanvas, metrics, rawAngle, maxAngle, doThirds) {
   const w = sourceCanvas.width;
   const h = sourceCanvas.height;
-  const angleDeg = clamp(metrics.horizonAngle, -30, 30);
+  const angleDeg = clamp(rawAngle, -maxAngle, maxAngle);
+  if (Math.abs(angleDeg) < 0.05) {
+    return sourceCanvas;
+  }
   const rotation = (-angleDeg * Math.PI) / 180;
 
   const rotated = rotateCanvas(sourceCanvas, rotation);
@@ -945,7 +1040,7 @@ function applyComposition(sourceCanvas, metrics) {
   let cropX = (rw - cropW) / 2;
   let cropY = (rh - cropH) / 2;
 
-  if (metrics.subjectRect) {
+  if (doThirds && metrics.subjectRect) {
     const nudged = nudgeToThirds({ rotation, w, h, rw, rh, cropX, cropY, cropW, cropH, metrics });
     cropX = nudged.x;
     cropY = nudged.y;
@@ -1080,6 +1175,16 @@ function initEventListeners() {
   toggleShadow.addEventListener('change', () => {
     featureShadow = toggleShadow.checked;
     rebuildImproved();
+  });
+  compModeButtons.forEach(btn => {
+    btn.addEventListener('click', event => {
+      event.preventDefault();
+      const mode = btn.dataset.mode;
+      if (mode === compMode) return;
+      compMode = mode;
+      compModeButtons.forEach(b => b.classList.toggle('active', b.dataset.mode === compMode));
+      rebuildImproved();
+    });
   });
   resetButton.addEventListener('click', resetInterface);
   downloadButton.addEventListener('click', () => {
