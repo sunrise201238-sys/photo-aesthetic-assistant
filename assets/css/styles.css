@@ -462,6 +462,38 @@ canvas {
   line-height: 1.45;
 }
 
+.comp-mode {
+  display: inline-flex;
+  margin-top: 0.5rem;
+  padding: 0.2rem;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.12);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  width: max-content;
+}
+
+.comp-mode button {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  padding: 0.3rem 0.85rem;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 500;
+  transition: color 0.2s ease, background 0.2s ease;
+}
+
+.comp-mode button.active {
+  background: rgba(91, 192, 255, 0.22);
+  color: var(--text-primary);
+}
+
+.comp-mode button:focus-visible {
+  outline: 2px solid rgba(91, 192, 255, 0.6);
+  outline-offset: 2px;
+}
+
 .overlay-controls {
   display: flex;
   flex-wrap: wrap;
