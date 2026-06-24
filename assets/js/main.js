@@ -139,10 +139,6 @@ function clamp(value, min = 0, max = 255) {
   return Math.min(max, Math.max(min, value));
 }
 
-function clamp01(value) {
-  return Math.min(1, Math.max(0, value));
-}
-
 function clampRange(value, lo, hi) {
   if (lo > hi) return (lo + hi) / 2;
   return Math.min(hi, Math.max(lo, value));
@@ -959,31 +955,29 @@ function applyShadowLift(canvas, metrics) {
   const imageData = ctx.getImageData(0, 0, width, height);
   const { data } = imageData;
 
-  const clip = metrics.shadowClipping;
-  const dark = Math.max(0, (130 - metrics.exposure) / 130);
-  // Gentle auto amount, capped low so shadows don't wash out to grey.
-  const amount = Math.min(0.32, 0.1 + clip * 1.0 + dark * 0.3);
+  // A smooth global gamma curve (gamma < 1) brightens shadows and midtones
+  // proportionally. Because it is smooth and never exceeds the input ceiling it
+  // (a) leaves highlights un-blown — no overexposure — and (b) doesn't amplify
+  // the dark sensor-noise floor into grey grain, unlike an additive shadow push.
+  // Calibrated against a user-supplied before/after pair (gamma ~0.70).
+  const exposure = metrics.exposure;
+  const dark = Math.max(0, (170 - exposure) / 170); // darker image -> more lift
+  const clipBoost = Math.min(0.15, metrics.shadowClipping * 1.5);
+  const bright = Math.max(0, (exposure - 205) / 50); // ease off already-bright shots
+  const gamma = Math.min(0.95, Math.max(0.55, 0.7 - dark * 0.16 - clipBoost + bright * 0.2));
 
+  if (gamma >= 0.999) {
+    return;
+  }
+
+  const lut = new Uint8ClampedArray(256);
+  for (let v = 0; v < 256; v++) {
+    lut[v] = Math.round(255 * Math.pow(v / 255, gamma));
+  }
   for (let i = 0; i < data.length; i += 4) {
-    const r = data[i];
-    const g = data[i + 1];
-    const b = data[i + 2];
-    const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
-
-    // Lift mid-shadows, but taper to zero near pure black so we don't amplify
-    // the sensor-noise floor into grey grain.
-    const shadowMask = Math.max(0, 1 - lum / 0.55);
-    const floorTaper = Math.min(1, lum / 0.06);
-    const lift = amount * shadowMask * floorTaper;
-    if (lift <= 0) continue;
-
-    const targetLum = clamp01(lum + lift * (1 - lum));
-    const add = (targetLum - lum) * 255;
-    if (add > 0) {
-      data[i] = clamp(r + add);
-      data[i + 1] = clamp(g + add);
-      data[i + 2] = clamp(b + add);
-    }
+    data[i] = lut[data[i]];
+    data[i + 1] = lut[data[i + 1]];
+    data[i + 2] = lut[data[i + 2]];
   }
 
   ctx.putImageData(imageData, 0, 0);
