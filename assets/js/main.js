@@ -8,9 +8,6 @@ const improvedMeta = document.getElementById('improved-meta');
 const downloadButton = document.getElementById('download-button');
 const toggleGrid = document.getElementById('toggle-grid');
 const toggleComposition = document.getElementById('toggle-composition');
-const toggleShadow = document.getElementById('toggle-shadow');
-const toggleColor = document.getElementById('toggle-color');
-const toggleDetail = document.getElementById('toggle-detail');
 const compModeButtons = document.querySelectorAll('.comp-mode button');
 const resetButton = document.getElementById('reset-button');
 const dropZone = document.getElementById('drop-zone');
@@ -139,9 +136,12 @@ let currentDownloadUrl = null;
 let lastOriginalCanvas = null;
 let lastImprovedCanvas = null;
 let featureComposition = true;
-let featureShadow = true;
-let featureColor = true;
-let featureDetail = false;
+// Shadow, white balance, and detail are always-on enhancements with no UI
+// toggle. Each remains a self-contained function (applyShadowLift /
+// applyWhiteBalance / applyDetail) so it can still be tuned independently.
+const featureShadow = true;
+const featureColor = true;
+const featureDetail = true;
 let compMode = 'landscape';
 let engineStatusState = 'loading';
 let errorTimeoutId = null;
@@ -1300,18 +1300,6 @@ function initEventListeners() {
     featureComposition = toggleComposition.checked;
     rebuildImproved();
   });
-  toggleShadow.addEventListener('change', () => {
-    featureShadow = toggleShadow.checked;
-    rebuildImproved();
-  });
-  toggleColor.addEventListener('change', () => {
-    featureColor = toggleColor.checked;
-    rebuildImproved();
-  });
-  toggleDetail.addEventListener('change', () => {
-    featureDetail = toggleDetail.checked;
-    rebuildImproved();
-  });
   compModeButtons.forEach(btn => {
     btn.addEventListener('click', event => {
       event.preventDefault();
@@ -1367,9 +1355,6 @@ async function loadDictionaries() {
 async function init() {
   dictionaries = cloneFallback();
   featureComposition = toggleComposition ? toggleComposition.checked : true;
-  featureShadow = toggleShadow ? toggleShadow.checked : true;
-  featureColor = toggleColor ? toggleColor.checked : true;
-  featureDetail = toggleDetail ? toggleDetail.checked : false;
   downloadButton.disabled = true;
   translatePage();
   initEventListeners();
