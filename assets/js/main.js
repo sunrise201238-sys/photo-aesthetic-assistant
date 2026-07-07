@@ -15,6 +15,7 @@ const improvedMeta = document.getElementById('improved-meta');
 const downloadButton = document.getElementById('download-button');
 const toggleGrid = document.getElementById('toggle-grid');
 const toggleComposition = document.getElementById('toggle-composition');
+const toggleShadow = document.getElementById('toggle-shadow');
 const compModeButtons = document.querySelectorAll('.comp-mode button');
 const resetButton = document.getElementById('reset-button');
 const dropZone = document.getElementById('drop-zone');
@@ -63,7 +64,7 @@ const fallbackDictionaries = {
     "metric_shadow_clipping": "Shadow clipping",
     "metric_download_name": "fixed-photo",
     "analysis_summary_default": "Upload a photo to see what can be straightened or brightened.",
-    "summary_all_off": "Both fixes are off — showing the original. Toggle Composition or Shadow to start.",
+    "summary_all_off": "Composition and Shadow are off — Detail and White balance are still applied automatically.",
     "summary_subject_missing": "<strong>Subject:</strong> No dominant subject detected — framing left as captured.",
     "summary_subject_centered": "<strong>Subject:</strong> Nicely balanced near the thirds intersections.",
     "summary_subject_off_center": "<strong>Subject:</strong> Off-centre — nudged toward a thirds line where it fit.",
@@ -116,7 +117,7 @@ const fallbackDictionaries = {
     "metric_shadow_clipping": "陰影裁切",
     "metric_download_name": "fixed-photo",
     "analysis_summary_default": "上傳照片即可看到可校正或提亮的項目。",
-    "summary_all_off": "兩項修正都已關閉，顯示原始影像。請切換「構圖」或「陰影」開始。",
+    "summary_all_off": "構圖與陰影已關閉；細節與白平衡仍會自動套用。",
     "summary_subject_missing": "<strong>主體：</strong> 未偵測到明顯主體，維持原始構圖。",
     "summary_subject_centered": "<strong>主體：</strong> 已落在三分線附近，構圖平衡。",
     "summary_subject_off_center": "<strong>主體：</strong> 稍微偏離三分線，已在可行範圍內靠向三分線。",
@@ -147,10 +148,11 @@ let lastFullCanvas = null;
 let lastDownloadCanvas = null;
 let rebuildToken = 0;
 let featureComposition = true;
-// Shadow, white balance, and detail are always-on enhancements with no UI
-// toggle. Each remains a self-contained function (applyShadowLift /
-// applyWhiteBalance / applyDetail) so it can still be tuned independently.
-const featureShadow = true;
+// Shadow lift is a user toggle, off by default.
+let featureShadow = false;
+// White balance and detail are always-on enhancements with no UI toggle.
+// Each remains a self-contained function (applyWhiteBalance / applyDetail)
+// so it can still be tuned independently.
 const featureColor = true;
 const featureDetail = true;
 let compMode = 'landscape';
@@ -1458,6 +1460,10 @@ function initEventListeners() {
     featureComposition = toggleComposition.checked;
     rebuildImproved();
   });
+  toggleShadow.addEventListener('change', () => {
+    featureShadow = toggleShadow.checked;
+    rebuildImproved();
+  });
   compModeButtons.forEach(btn => {
     btn.addEventListener('click', event => {
       event.preventDefault();
@@ -1533,6 +1539,7 @@ async function loadDictionaries() {
 async function init() {
   dictionaries = cloneFallback();
   featureComposition = toggleComposition ? toggleComposition.checked : true;
+  featureShadow = toggleShadow ? toggleShadow.checked : false;
   downloadButton.disabled = true;
   translatePage();
   initEventListeners();

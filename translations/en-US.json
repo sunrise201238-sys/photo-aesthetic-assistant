@@ -33,7 +33,7 @@
   "metric_shadow_clipping": "Shadow clipping",
   "metric_download_name": "fixed-photo",
   "analysis_summary_default": "Upload a photo to see what can be straightened or brightened.",
-  "summary_all_off": "Both fixes are off — showing the original. Toggle Composition or Shadow to start.",
+  "summary_all_off": "Composition and Shadow are off — Detail and White balance are still applied automatically.",
   "summary_subject_missing": "<strong>Subject:</strong> No dominant subject detected — framing left as captured.",
   "summary_subject_centered": "<strong>Subject:</strong> Nicely balanced near the thirds intersections.",
   "summary_subject_off_center": "<strong>Subject:</strong> Off-centre — nudged toward a thirds line where it fit.",

@@ -33,7 +33,7 @@
   "metric_shadow_clipping": "陰影裁切",
   "metric_download_name": "fixed-photo",
   "analysis_summary_default": "上傳照片即可看到可校正或提亮的項目。",
-  "summary_all_off": "兩項修正都已關閉，顯示原始影像。請切換「構圖」或「陰影」開始。",
+  "summary_all_off": "構圖與陰影已關閉；細節與白平衡仍會自動套用。",
   "summary_subject_missing": "<strong>主體：</strong> 未偵測到明顯主體，維持原始構圖。",
   "summary_subject_centered": "<strong>主體：</strong> 已落在三分線附近，構圖平衡。",
   "summary_subject_off_center": "<strong>主體：</strong> 稍微偏離三分線，已在可行範圍內靠向三分線。",

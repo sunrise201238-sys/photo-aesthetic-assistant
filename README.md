@@ -10,10 +10,10 @@ Drop in a photo and it's cleaned up automatically. Everything runs locally:
 
 ## Features
 
-**Composition** is a toggle you control (with two modes). The tone fixes —
-**Shadow**, **Detail**, and **White balance** — are always on and applied
-automatically, so a dropped photo comes out brightened, crisp, and
-colour-neutral with no knobs to set.
+**Composition** (with two modes) and **Shadow** are toggles you control. The
+tone fixes — **Detail** and **White balance** — are always on and applied
+automatically, so a dropped photo comes out crisp and colour-neutral with no
+knobs to set.
 
 - **Composition** _(toggle)_ — straightens a tilted photo and crops the corners
   clean (zooms in just enough that there are no blank edges). Two modes:
@@ -24,8 +24,8 @@ colour-neutral with no knobs to set.
     snapping its long axis upright (horizontal or vertical).
   - It only acts when confident — ambiguous or already-level shots are left
     as-is rather than rotated by a wrong guess.
-- **Shadow** _(always on)_ — gently lifts the dark areas so you can see into the
-  shadows, without blowing out the highlights.
+- **Shadow** _(toggle, off by default)_ — gently lifts the dark areas so you can
+  see into the shadows, without blowing out the highlights.
 - **Detail** _(always on)_ — a subtle "punch": slightly deeper blacks, eased
   highlights, a light sharpen, and a hint of grain for a crisp but natural
   finish. Colour-safe (won't shift the white balance).
@@ -53,15 +53,15 @@ structure and tone a little.
 
 ## 功能
 
-**構圖（Composition）**為可自行切換的開關（含兩種模式）。色調修正——**陰影（Shadow）**、
-**細節（Detail）**、**白平衡（White balance）**——皆為自動套用、無需設定，相片放上去就會
-自動提亮、變清晰、色彩中性。
+**構圖（Composition）**（含兩種模式）與**陰影（Shadow）**為可自行切換的開關。色調修正——
+**細節（Detail）**與**白平衡（White balance）**——皆為自動套用、無需設定，相片放上去就會
+自動變清晰、色彩中性。
 
 - **構圖（Composition）**_（開關）_——校正傾斜並裁切邊角（適度放大，避免留下空白）。兩種模式：
   - **場景（Landscape）**——依主要直線（地平線、建築邊緣）校平整個場景，並在不裁切主體的前提下，輕微靠向三分線。
   - **物件（Object）**——將單一明顯物件（如筆或瓶子）轉正，使其長軸對齊水平或垂直。
   - 僅在判斷有把握時才動作；模稜兩可或本來就水平的相片會維持原樣，不會亂轉。
-- **陰影（Shadow）**_（自動）_——適度提亮暗部，找回陰影細節，同時保護高光不過曝。
+- **陰影（Shadow）**_（開關，預設關閉）_——適度提亮暗部，找回陰影細節，同時保護高光不過曝。
 - **細節（Detail）**_（自動）_——細緻的「層次感」：略加深黑、收斂高光、輕度銳化並加入少許顆粒，呈現清晰又自然的質感；不影響白平衡。
 - **白平衡（White balance）**_（自動）_——校正偏暖或偏冷的色偏，讓白色呈現自然白光。
 - **顯示輔助線（Show guides）**_（開關）_——在預覽上疊加三分線與偵測到的主體／地平線；僅供顯示，不會寫入下載的影像。

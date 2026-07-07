@@ -13,8 +13,9 @@ deploys from `main`, so a push to `main` is what updates the live site.
   self-contained function tuned via inline constants:
   `applyStraighten` (+ `nudgeToThirds`), `applyShadowLift`, `applyDetail`,
   `applyWhiteBalance`.
-- Shadow, Detail, and White balance are always-on (no UI toggle);
-  Composition (Landscape/Object) and Show guides are user toggles.
+- Detail and White balance are always-on (no UI toggle); Composition
+  (Landscape/Object), Shadow (default off), and Show guides are user
+  toggles.
 - Dual resolution: analysis/preview on a ≤2048px copy (`MAX_DIMENSION`),
   downloads re-rendered at up to 4096px / 15MP (`MAX_OUTPUT_DIMENSION`,
   `MAX_OUTPUT_AREA` — iOS Safari canvas-limit headroom). Download is
