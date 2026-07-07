@@ -34,6 +34,9 @@ colour-neutral with no knobs to set.
 - **Show guides** _(toggle)_ — overlays rule-of-thirds lines and the detected
   subject/horizon on the preview. Display only — it is not baked into the
   downloaded image.
+- **Full-size output** — the analysis runs on a fast preview copy, but the
+  downloaded result is re-rendered from the photo at (near) native resolution,
+  capped only by mobile browser limits (~12 MP).
 
 All of the analysis (brightness, edges, tilt, subject, white point) is computed
 on-device from the photo's own pixels — there is no AI service and no network
@@ -62,6 +65,7 @@ structure and tone a little.
 - **細節（Detail）**_（自動）_——細緻的「層次感」：略加深黑、收斂高光、輕度銳化並加入少許顆粒，呈現清晰又自然的質感；不影響白平衡。
 - **白平衡（White balance）**_（自動）_——校正偏暖或偏冷的色偏，讓白色呈現自然白光。
 - **顯示輔助線（Show guides）**_（開關）_——在預覽上疊加三分線與偵測到的主體／地平線；僅供顯示，不會寫入下載的影像。
+- **完整解析度輸出**——分析在較小的預覽副本上快速進行，下載的成品則以（接近）原始解析度重新處理，僅受行動瀏覽器上限（約 1200 萬像素）限制。
 
 所有分析（亮度、邊緣、傾斜、主體、白點）都在本機依相片像素計算——沒有 AI 服務、沒有任何網路請求。
 它不是審美裁判，而是默默協助你整理結構與色調的小助手。

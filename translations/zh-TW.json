@@ -4,7 +4,7 @@
   "analysis_heading": "立即校正與提亮",
   "analysis_subheading": "上傳照片後，自由切換想要的修正功能，所有處理皆在本機完成。",
   "drop_instructions": "拖曳影像到此或點擊選擇檔案。",
-  "drop_hint": "支援 JPG、PNG、HEIC，最多 1200 萬像素。所有處理皆在本機完成。",
+  "drop_hint": "支援 JPG、PNG、HEIC，最高 4800 萬像素。所有處理皆在本機完成。",
   "select_button": "選擇照片",
   "reset_button": "重設",
   "original_title": "原始影像",
