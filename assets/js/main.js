@@ -39,7 +39,7 @@ const fallbackDictionaries = {
     "reset_button": "Reset",
     "original_title": "Original",
     "improved_title": "Result",
-    "download_button": "Download Result",
+    "download_button": "Save Photo",
     "toggle_grid": "Show guides",
     "feature_composition_title": "Composition",
     "feature_composition_desc": "Straighten the tilt — level the whole scene, or snap a single object upright.",
@@ -92,7 +92,7 @@ const fallbackDictionaries = {
     "reset_button": "重設",
     "original_title": "原始影像",
     "improved_title": "處理結果",
-    "download_button": "下載結果",
+    "download_button": "儲存照片",
     "toggle_grid": "顯示輔助線",
     "feature_composition_title": "構圖",
     "feature_composition_desc": "校正傾斜——可校平整個場景，或將單一物件轉正。",
@@ -140,6 +140,7 @@ let dictionaries = cloneFallback();
 let currentLang = 'en-US';
 let currentMetrics = null;
 let currentDownloadUrl = null;
+let currentDownloadBlob = null;
 let lastOriginalCanvas = null;
 let lastImprovedCanvas = null;
 let lastFullCanvas = null;
@@ -324,6 +325,7 @@ function revokeDownloadUrl() {
     URL.revokeObjectURL(currentDownloadUrl);
     currentDownloadUrl = null;
   }
+  currentDownloadBlob = null;
 }
 
 async function prepareDownload(sourceCanvas, token) {
@@ -350,6 +352,7 @@ async function prepareDownload(sourceCanvas, token) {
       const name = dict['metric_download_name'] || 'fixed-photo';
       if (blob) {
         currentDownloadUrl = URL.createObjectURL(blob);
+        currentDownloadBlob = blob;
         downloadButton.disabled = false;
         downloadButton.dataset.filename = `${name}.jpg`;
       } else {
@@ -1468,10 +1471,30 @@ function initEventListeners() {
   resetButton.addEventListener('click', resetInterface);
   downloadButton.addEventListener('click', () => {
     if (!currentDownloadUrl) return;
-    const a = document.createElement('a');
-    a.href = currentDownloadUrl;
-    a.download = downloadButton.dataset.filename || 'fixed-photo.jpg';
-    a.click();
+    const filename = downloadButton.dataset.filename || 'fixed-photo.jpg';
+    const saveViaAnchor = () => {
+      const a = document.createElement('a');
+      a.href = currentDownloadUrl;
+      a.download = filename;
+      a.click();
+    };
+    // On touch devices, share the image file itself: the iOS share sheet then
+    // offers "Save Image", which writes straight to the Photos library — a
+    // plain blob download can only reach the Files app. Web pages are not
+    // allowed to write to Photos without that one tap.
+    if (currentDownloadBlob && navigator.canShare &&
+        window.matchMedia('(hover: none), (pointer: coarse)').matches) {
+      const file = new File([currentDownloadBlob], filename, { type: 'image/jpeg' });
+      if (navigator.canShare({ files: [file] })) {
+        navigator.share({ files: [file] }).catch(error => {
+          // User closing the sheet is not an error; anything else falls back
+          // to a regular download.
+          if (error && error.name !== 'AbortError') saveViaAnchor();
+        });
+        return;
+      }
+    }
+    saveViaAnchor();
   });
   langToggleButtons.forEach(btn => {
     btn.addEventListener('click', () => {

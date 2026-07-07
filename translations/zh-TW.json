@@ -9,7 +9,7 @@
   "reset_button": "重設",
   "original_title": "原始影像",
   "improved_title": "處理結果",
-  "download_button": "下載結果",
+  "download_button": "儲存照片",
   "toggle_grid": "顯示輔助線",
   "feature_composition_title": "構圖",
   "feature_composition_desc": "校正傾斜——可校平整個場景，或將單一物件轉正。",
