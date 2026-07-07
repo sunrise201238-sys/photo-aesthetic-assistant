@@ -1,4 +1,11 @@
+// Analysis/preview size: metrics and the on-screen preview run on a fast,
+// small copy of the photo.
 const MAX_DIMENSION = 2048;
+// Output size: the downloaded result is rendered from a separate, larger
+// decode so it keeps (near) native resolution. Both caps keep the canvas —
+// including transient ones — inside iOS Safari's ~16.7 MP area limit.
+const MAX_OUTPUT_DIMENSION = 4096;
+const MAX_OUTPUT_AREA = 15e6;
 
 const metricsContainer = document.getElementById('metrics');
 const originalCanvas = document.getElementById('original-canvas');
@@ -27,7 +34,7 @@ const fallbackDictionaries = {
     "analysis_heading": "Straighten & brighten instantly",
     "analysis_subheading": "Upload a photo, then toggle the fixes you want. Everything runs on-device.",
     "drop_instructions": "Drop an image here or click to choose a file.",
-    "drop_hint": "JPG, PNG, HEIC up to 12 MP. Processed privately on-device.",
+    "drop_hint": "JPG, PNG, HEIC up to 48 MP. Processed privately on-device.",
     "select_button": "Select Photo",
     "reset_button": "Reset",
     "original_title": "Original",
@@ -80,7 +87,7 @@ const fallbackDictionaries = {
     "analysis_heading": "立即校正與提亮",
     "analysis_subheading": "上傳照片後，自由切換想要的修正功能，所有處理皆在本機完成。",
     "drop_instructions": "拖曳影像到此或點擊選擇檔案。",
-    "drop_hint": "支援 JPG、PNG、HEIC，最多 1200 萬像素。所有處理皆在本機完成。",
+    "drop_hint": "支援 JPG、PNG、HEIC，最高 4800 萬像素。所有處理皆在本機完成。",
     "select_button": "選擇照片",
     "reset_button": "重設",
     "original_title": "原始影像",
@@ -135,6 +142,9 @@ let currentMetrics = null;
 let currentDownloadUrl = null;
 let lastOriginalCanvas = null;
 let lastImprovedCanvas = null;
+let lastFullCanvas = null;
+let lastDownloadCanvas = null;
+let rebuildToken = 0;
 let featureComposition = true;
 // Shadow, white balance, and detail are always-on enhancements with no UI
 // toggle. Each remains a self-contained function (applyShadowLift /
@@ -287,6 +297,9 @@ function showError(messageKey, fallback) {
 function cleanupCanvases() {
   lastOriginalCanvas = null;
   lastImprovedCanvas = null;
+  lastFullCanvas = null;
+  lastDownloadCanvas = null;
+  rebuildToken++; // invalidate any in-flight full-resolution rebuild
 }
 
 function resetInterface() {
@@ -313,21 +326,37 @@ function revokeDownloadUrl() {
   }
 }
 
-async function prepareDownload(sourceCanvas) {
+async function prepareDownload(sourceCanvas, token) {
   revokeDownloadUrl();
+  // Flatten onto white first: JPEG has no alpha channel, and toBlob would
+  // otherwise composite transparent pixels (e.g. from an uploaded PNG) onto
+  // solid black.
+  const flat = document.createElement('canvas');
+  flat.width = sourceCanvas.width;
+  flat.height = sourceCanvas.height;
+  const flatCtx = flat.getContext('2d');
+  flatCtx.fillStyle = '#fff';
+  flatCtx.fillRect(0, 0, flat.width, flat.height);
+  flatCtx.drawImage(sourceCanvas, 0, 0);
   await new Promise(resolve => {
-    sourceCanvas.toBlob(blob => {
+    // JPEG at 0.95: visually transparent, and keeps the now full-resolution
+    // download at a sane file size (a 12 MP PNG would be tens of MB).
+    flat.toBlob(blob => {
+      if (token !== undefined && token !== rebuildToken) {
+        resolve(); // superseded by a newer rebuild — let it own the button
+        return;
+      }
       const dict = dictionaries[currentLang] || {};
       const name = dict['metric_download_name'] || 'fixed-photo';
       if (blob) {
         currentDownloadUrl = URL.createObjectURL(blob);
         downloadButton.disabled = false;
-        downloadButton.dataset.filename = `${name}.png`;
+        downloadButton.dataset.filename = `${name}.jpg`;
       } else {
         downloadButton.disabled = true;
       }
       resolve();
-    }, 'image/png');
+    }, 'image/jpeg', 0.95);
   });
 }
 
@@ -351,7 +380,7 @@ function refreshCanvases() {
       metrics: currentMetrics,
       includeAnnotations: true
     });
-    setCanvasMeta(originalMeta, lastOriginalCanvas);
+    setCanvasMeta(originalMeta, lastFullCanvas || lastOriginalCanvas);
   }
   if (lastImprovedCanvas) {
     renderToCanvas(improvedCanvas, lastImprovedCanvas, {
@@ -359,21 +388,72 @@ function refreshCanvases() {
       metrics: currentMetrics,
       includeAnnotations: false
     });
-    setCanvasMeta(improvedMeta, lastImprovedCanvas);
+    setCanvasMeta(improvedMeta, lastDownloadCanvas || lastImprovedCanvas);
   }
+}
+
+// Resolves after the next paint, so preview updates reach the screen before
+// heavier work blocks the main thread. Falls back to a plain timeout because
+// requestAnimationFrame never fires while the tab is hidden.
+function afterPaint() {
+  return new Promise(resolve => {
+    let done = false;
+    const finish = () => {
+      if (!done) {
+        done = true;
+        resolve();
+      }
+    };
+    requestAnimationFrame(() => setTimeout(finish, 0));
+    setTimeout(finish, 300);
+  });
 }
 
 async function rebuildImproved() {
   if (!currentMetrics || !lastOriginalCanvas) return;
-  lastImprovedCanvas = buildImproved(lastOriginalCanvas, currentMetrics);
-  renderToCanvas(improvedCanvas, lastImprovedCanvas, {
-    showGuides: toggleGrid.checked,
-    metrics: currentMetrics,
-    includeAnnotations: false
-  });
-  setCanvasMeta(improvedMeta, lastImprovedCanvas);
-  updateAnalysisSummary(currentMetrics);
-  await prepareDownload(lastImprovedCanvas);
+  const token = ++rebuildToken;
+  downloadButton.disabled = true;
+  try {
+    lastImprovedCanvas = buildImproved(lastOriginalCanvas, currentMetrics);
+    renderToCanvas(improvedCanvas, lastImprovedCanvas, {
+      showGuides: toggleGrid.checked,
+      metrics: currentMetrics,
+      includeAnnotations: false
+    });
+    updateAnalysisSummary(currentMetrics);
+    if (lastFullCanvas) {
+      // The download is re-rendered from the full-resolution decode; show the
+      // busy indicator and let the small preview paint first so toggling
+      // stays responsive.
+      setLoading(true);
+      await afterPaint();
+      if (token !== rebuildToken) return; // superseded by a newer rebuild
+      try {
+        lastDownloadCanvas = buildImproved(
+          lastFullCanvas,
+          currentMetrics,
+          lastFullCanvas.width / lastOriginalCanvas.width,
+          lastFullCanvas.height / lastOriginalCanvas.height
+        );
+      } catch (error) {
+        // Full-resolution render failed (typically mobile canvas memory
+        // limits) — fall back to the preview-resolution result so the
+        // download still works.
+        console.warn('Full-resolution render failed; using preview resolution', error);
+        lastDownloadCanvas = lastImprovedCanvas;
+      }
+    } else {
+      lastDownloadCanvas = lastImprovedCanvas;
+    }
+    if (token !== rebuildToken) return;
+    setCanvasMeta(improvedMeta, lastDownloadCanvas);
+    await prepareDownload(lastDownloadCanvas, token);
+  } catch (error) {
+    console.error(error);
+    showError('error_processing', 'Unable to process this file. Please try another image.');
+  } finally {
+    setLoading(false);
+  }
 }
 
 function translatePage() {
@@ -393,8 +473,8 @@ function translatePage() {
   } else {
     renderMetrics(currentMetrics);
     updateAnalysisSummary(currentMetrics);
-    setCanvasMeta(originalMeta, lastOriginalCanvas);
-    setCanvasMeta(improvedMeta, lastImprovedCanvas);
+    setCanvasMeta(originalMeta, lastFullCanvas || lastOriginalCanvas);
+    setCanvasMeta(improvedMeta, lastDownloadCanvas || lastImprovedCanvas);
   }
   updateStatusBadge();
 }
@@ -509,6 +589,15 @@ function scaleDimensions(width, height, maxSize) {
     return { width: maxSize, height: Math.round(maxSize / ratio) };
   }
   return { width: Math.round(maxSize * ratio), height: maxSize };
+}
+
+// Size of the full-resolution output render: native size where possible,
+// bounded by both a long-edge cap and a total-area cap (iOS Safari headroom).
+function capOutputDimensions(width, height) {
+  const edgeScale = MAX_OUTPUT_DIMENSION / Math.max(width, height);
+  const areaScale = Math.sqrt(MAX_OUTPUT_AREA / (width * height));
+  const scale = Math.min(1, edgeScale, areaScale);
+  return { width: Math.round(width * scale), height: Math.round(height * scale) };
 }
 
 function readFileAsArrayBuffer(file, length = 128 * 1024) {
@@ -638,32 +727,41 @@ async function readImageFile(file) {
   const swap = !orientationHandled && orientation >= 5 && orientation <= 8;
   const orientedWidth = swap ? srcHeight : srcWidth;
   const orientedHeight = swap ? srcWidth : srcHeight;
-  const targetSize = scaleDimensions(orientedWidth, orientedHeight, MAX_DIMENSION);
+  const analysisSize = scaleDimensions(orientedWidth, orientedHeight, MAX_DIMENSION);
+  const outputSize = capOutputDimensions(orientedWidth, orientedHeight);
 
-  // Decode straight into the downscaled target canvas — never allocate a
-  // full-resolution canvas, which can exceed mobile Safari's ~16 MP limit on
+  // Decode straight into a scaled target canvas — never allocate a canvas at
+  // the photo's native size, which can exceed mobile Safari's ~16 MP limit on
   // high-megapixel iPhone photos.
-  const canvas = document.createElement('canvas');
-  canvas.width = targetSize.width;
-  canvas.height = targetSize.height;
-  const ctx = canvas.getContext('2d');
-  ctx.imageSmoothingQuality = 'high';
+  const decode = targetSize => {
+    const canvas = document.createElement('canvas');
+    canvas.width = targetSize.width;
+    canvas.height = targetSize.height;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingQuality = 'high';
+    if (orientationHandled) {
+      ctx.drawImage(source, 0, 0, targetSize.width, targetSize.height);
+    } else {
+      const scale = targetSize.width / orientedWidth; // uniform (aspect preserved)
+      ctx.scale(scale, scale);
+      applyOrientationTransform(ctx, orientation, srcWidth, srcHeight);
+      ctx.drawImage(source, 0, 0);
+    }
+    return canvas;
+  };
 
-  if (orientationHandled) {
-    ctx.drawImage(source, 0, 0, targetSize.width, targetSize.height);
-  } else {
-    const scale = targetSize.width / orientedWidth; // uniform (aspect preserved)
-    ctx.scale(scale, scale);
-    applyOrientationTransform(ctx, orientation, srcWidth, srcHeight);
-    ctx.drawImage(source, 0, 0);
-  }
+  const canvas = decode(analysisSize);
+  // Second, larger decode straight from the source (not an upscale of the
+  // small copy) — this feeds the downloaded result at (near) native size.
+  const fullCanvas = outputSize.width > analysisSize.width ? decode(outputSize) : null;
 
   if (typeof source.close === 'function') {
     source.close();
   }
 
-  const imageData = ctx.getImageData(0, 0, targetSize.width, targetSize.height);
-  return { canvas, imageData };
+  const ctx = canvas.getContext('2d');
+  const imageData = ctx.getImageData(0, 0, analysisSize.width, analysisSize.height);
+  return { canvas, imageData, fullCanvas };
 }
 
 function computeStatistics(values) {
@@ -914,48 +1012,32 @@ function detectSubjectAxis(grayscale, width, height) {
   return Math.abs(dev) >= 1.5 ? dev : 0;
 }
 
-function buildImproved(baseCanvas, metrics) {
+// scaleX/scaleY map metric coordinates (measured on the analysis-size image)
+// onto baseCanvas's pixel grid — 1 for the preview, >1 for the full-size
+// output. The two axes round independently at decode, so they differ slightly.
+function buildImproved(baseCanvas, metrics, scaleX = 1, scaleY = 1) {
   let canvas = cloneCanvas(baseCanvas);
+  let rotated = false;
   if (featureComposition) {
-    if (compMode === 'object') {
+    const straightened = compMode === 'object'
       // Snap the main object upright; larger angles allowed, no thirds reframe.
-      canvas = applyStraighten(canvas, metrics, metrics.subjectAngle, 45, false);
-    } else {
+      ? applyStraighten(canvas, metrics, metrics.subjectAngle, 45, false, scaleX, scaleY)
       // Level the scene, with the safe rule-of-thirds nudge.
-      canvas = applyStraighten(canvas, metrics, metrics.horizonAngle, 30, true);
-    }
+      : applyStraighten(canvas, metrics, metrics.horizonAngle, 30, true, scaleX, scaleY);
+    rotated = straightened !== canvas;
+    canvas = straightened;
   }
   if (featureShadow) {
     applyShadowLift(canvas, metrics);
   }
   if (featureDetail) {
-    applyDetail(canvas);
+    applyDetail(canvas, { scale: scaleX, rotated });
   }
   if (featureColor) {
     // Applied last so the whites end up neutral regardless of the other stages.
     applyWhiteBalance(canvas);
   }
   return canvas;
-}
-
-function rotateCanvas(sourceCanvas, rotation) {
-  if (Math.abs(rotation) < 0.002) {
-    return cloneCanvas(sourceCanvas);
-  }
-  const width = sourceCanvas.width;
-  const height = sourceCanvas.height;
-  const cos = Math.cos(rotation);
-  const sin = Math.sin(rotation);
-  const rotatedWidth = Math.round(Math.abs(cos) * width + Math.abs(sin) * height);
-  const rotatedHeight = Math.round(Math.abs(sin) * width + Math.abs(cos) * height);
-  const rotatedCanvas = document.createElement('canvas');
-  rotatedCanvas.width = rotatedWidth;
-  rotatedCanvas.height = rotatedHeight;
-  const ctx = rotatedCanvas.getContext('2d');
-  ctx.translate(rotatedWidth / 2, rotatedHeight / 2);
-  ctx.rotate(rotation);
-  ctx.drawImage(sourceCanvas, -width / 2, -height / 2);
-  return rotatedCanvas;
 }
 
 // Largest axis-aligned rectangle (same aspect ratio as w×h) that fits inside a
@@ -999,17 +1081,56 @@ function rotatePoint(px, py, w, h, rw, rh, rotation) {
   };
 }
 
+// How much smaller (linear factor) the thirds crop is than the maximal
+// inscribed rectangle. The maximal rectangle touches all four edges of the
+// rotated image, so it has zero room to slide — a reframe needs this slack.
+const THIRDS_CROP_SHRINK = 0.97;
+
+// True when every corner of the crop rect (in rotated space) samples a real
+// photo pixel — i.e. maps back inside the w×h source under the inverse of the
+// applyStraighten transform. Half-pixel tolerance for the rounded rw/rh.
+function cropInsideSource(x, y, cw, ch, w, h, rw, rh, rotation) {
+  const cos = Math.cos(rotation);
+  const sin = Math.sin(rotation);
+  const eps = 0.5;
+  return [[x, y], [x + cw, y], [x, y + ch], [x + cw, y + ch]].every(([px, py]) => {
+    const dx = px - rw / 2;
+    const dy = py - rh / 2;
+    const sx = cos * dx + sin * dy + w / 2;
+    const sy = -sin * dx + cos * dy + h / 2;
+    return sx >= -eps && sx <= w + eps && sy >= -eps && sy <= h + eps;
+  });
+}
+
 // Shift the leveling crop toward a thirds line — but only along an axis where
-// the whole subject stays inside the crop, so nothing important gets cut.
+// the whole subject stays inside the crop, so nothing important gets cut, and
+// never past the edges of the rotated photo, so the crop always samples real
+// pixels (no blank wedges baked into the output). Returns the shrunken,
+// shifted crop rect, or null when no meaningful shift is possible — the
+// caller then keeps the full-size centered crop.
 function nudgeToThirds(params) {
-  const { rotation, w, h, rw, rh, cropX, cropY, cropW, cropH, metrics } = params;
-  const center = rotatePoint(metrics.subjectCenter.x, metrics.subjectCenter.y, w, h, rw, rh, rotation);
+  const { rotation, w, h, rw, rh, cropW, cropH, metrics, scaleX = 1, scaleY = 1 } = params;
+  const cw = Math.floor(cropW * THIRDS_CROP_SHRINK);
+  const ch = Math.floor(cropH * THIRDS_CROP_SHRINK);
+  const cos = Math.cos(rotation);
+  const sin = Math.sin(rotation);
+
+  // Feasible slide range for the crop centre, measured in the source frame:
+  // the crop's source-frame bounding box must stay inside the w×h photo.
+  const bw = cw * Math.abs(cos) + ch * Math.abs(sin);
+  const bh = cw * Math.abs(sin) + ch * Math.abs(cos);
+  const slackX = (w - bw) / 2;
+  const slackY = (h - bh) / 2;
+  if (slackX <= 0 || slackY <= 0) return null;
+
+  // Subject metrics are in analysis-image pixels; scale them onto this canvas.
+  const center = rotatePoint(metrics.subjectCenter.x * scaleX, metrics.subjectCenter.y * scaleY, w, h, rw, rh, rotation);
   const r = metrics.subjectRect;
   const corners = [
-    [r.x, r.y],
-    [r.x + r.width, r.y],
-    [r.x, r.y + r.height],
-    [r.x + r.width, r.y + r.height]
+    [r.x * scaleX, r.y * scaleY],
+    [(r.x + r.width) * scaleX, r.y * scaleY],
+    [r.x * scaleX, (r.y + r.height) * scaleY],
+    [(r.x + r.width) * scaleX, (r.y + r.height) * scaleY]
   ].map(([x, y]) => rotatePoint(x, y, w, h, rw, rh, rotation));
   const minSx = Math.min(...corners.map(p => p.x));
   const maxSx = Math.max(...corners.map(p => p.x));
@@ -1017,30 +1138,52 @@ function nudgeToThirds(params) {
   const maxSy = Math.max(...corners.map(p => p.y));
 
   const strength = 0.6;
-  const thirdsX = [cropW / 3, (2 * cropW) / 3];
-  const thirdsY = [cropH / 3, (2 * cropH) / 3];
+  const centeredX = (rw - cw) / 2;
+  const centeredY = (rh - ch) / 2;
+  const thirdsX = [cw / 3, (2 * cw) / 3];
+  const thirdsY = [ch / 3, (2 * ch) / 3];
 
-  const relX = center.x - cropX;
-  const relY = center.y - cropY;
+  const relX = center.x - centeredX;
+  const relY = center.y - centeredY;
   const targetX = thirdsX.reduce((a, b) => (Math.abs(b - relX) < Math.abs(a - relX) ? b : a));
   const targetY = thirdsY.reduce((a, b) => (Math.abs(b - relY) < Math.abs(a - relY) ? b : a));
 
-  let candidateX = cropX + ((center.x - targetX) - cropX) * strength;
-  let candidateY = cropY + ((center.y - targetY) - cropY) * strength;
-  candidateX = clampRange(candidateX, 0, rw - cropW);
-  candidateY = clampRange(candidateY, 0, rh - cropH);
+  const candidateX = centeredX + ((center.x - targetX) - centeredX) * strength;
+  const candidateY = centeredY + ((center.y - targetY) - centeredY) * strength;
 
-  let outX = cropX;
-  let outY = cropY;
-  if (minSx >= candidateX && maxSx <= candidateX + cropW) outX = candidateX;
-  if (minSy >= candidateY && maxSy <= candidateY + cropH) outY = candidateY;
-  return { x: outX, y: outY };
+  // Only shift along an axis where the whole subject stays inside the crop.
+  let dx = (minSx >= candidateX && maxSx <= candidateX + cw) ? candidateX - centeredX : 0;
+  let dy = (minSy >= candidateY && maxSy <= candidateY + ch) ? candidateY - centeredY : 0;
+
+  // Clamp the shift to the feasible slide region (rotate it into the source
+  // frame and bound each source axis by its slack).
+  const shiftSrcX = cos * dx + sin * dy;
+  const shiftSrcY = -sin * dx + cos * dy;
+  let t = 1;
+  if (Math.abs(shiftSrcX) > 1e-9) t = Math.min(t, slackX / Math.abs(shiftSrcX));
+  if (Math.abs(shiftSrcY) > 1e-9) t = Math.min(t, slackY / Math.abs(shiftSrcY));
+  t = Math.max(0, t * 0.995);
+  dx *= t;
+  dy *= t;
+
+  // A barely-there shift isn't worth the crop shrink. Threshold is in
+  // analysis-image pixels so preview and full-size render agree.
+  if (Math.abs(dx) < 2 * scaleX && Math.abs(dy) < 2 * scaleY) return null;
+
+  const x = centeredX + dx;
+  const y = centeredY + dy;
+  if (!cropInsideSource(x, y, cw, ch, w, h, rw, rh, rotation)) return null;
+  return { x, y, w: cw, h: ch };
 }
 
-// Rotate by `rawAngle` (clamped to ±maxAngle), then crop the largest inscribed
-// rectangle so the rotation leaves no blank corners. doThirds adds the safe
-// rule-of-thirds reframe (Landscape mode only).
-function applyStraighten(sourceCanvas, metrics, rawAngle, maxAngle, doThirds) {
+// Rotate by `rawAngle` (clamped to ±maxAngle) and crop the largest inscribed
+// rectangle so the rotation leaves no blank corners. Rotation and crop happen
+// in a single draw, so the pixels are resampled exactly once — a separate
+// rotate-then-crop pass would blur every pixel a second time whenever the crop
+// origin lands on a half-pixel offset. It also never allocates a canvas larger
+// than the source, keeping full-resolution Object-mode (±45°) iOS-safe.
+// doThirds adds the safe rule-of-thirds reframe (Landscape mode only).
+function applyStraighten(sourceCanvas, metrics, rawAngle, maxAngle, doThirds, scaleX = 1, scaleY = 1) {
   const w = sourceCanvas.width;
   const h = sourceCanvas.height;
   const angleDeg = clamp(rawAngle, -maxAngle, maxAngle);
@@ -1048,10 +1191,10 @@ function applyStraighten(sourceCanvas, metrics, rawAngle, maxAngle, doThirds) {
     return sourceCanvas;
   }
   const rotation = (-angleDeg * Math.PI) / 180;
-
-  const rotated = rotateCanvas(sourceCanvas, rotation);
-  const rw = rotated.width;
-  const rh = rotated.height;
+  const cos = Math.cos(rotation);
+  const sin = Math.sin(rotation);
+  const rw = Math.round(Math.abs(cos) * w + Math.abs(sin) * h);
+  const rh = Math.round(Math.abs(sin) * w + Math.abs(cos) * h);
 
   const inscribed = largestRotatedRect(w, h, rotation);
   const cropW = Math.max(1, Math.min(rw, Math.floor(inscribed.w)));
@@ -1059,17 +1202,27 @@ function applyStraighten(sourceCanvas, metrics, rawAngle, maxAngle, doThirds) {
 
   let cropX = (rw - cropW) / 2;
   let cropY = (rh - cropH) / 2;
+  let outW = cropW;
+  let outH = cropH;
 
   if (doThirds && metrics.subjectRect) {
-    const nudged = nudgeToThirds({ rotation, w, h, rw, rh, cropX, cropY, cropW, cropH, metrics });
-    cropX = nudged.x;
-    cropY = nudged.y;
+    const nudged = nudgeToThirds({ rotation, w, h, rw, rh, cropW, cropH, metrics, scaleX, scaleY });
+    if (nudged) {
+      cropX = nudged.x;
+      cropY = nudged.y;
+      outW = nudged.w;
+      outH = nudged.h;
+    }
   }
 
   const out = document.createElement('canvas');
-  out.width = cropW;
-  out.height = cropH;
-  out.getContext('2d').drawImage(rotated, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+  out.width = outW;
+  out.height = outH;
+  const ctx = out.getContext('2d');
+  ctx.imageSmoothingQuality = 'high';
+  ctx.translate(rw / 2 - cropX, rh / 2 - cropY);
+  ctx.rotate(rotation);
+  ctx.drawImage(sourceCanvas, -w / 2, -h / 2);
   return out;
 }
 
@@ -1092,7 +1245,8 @@ function blurredData(sourceCanvas, px) {
 // highlights for crisper-looking edges, plus a very light luminance-only
 // sharpen and a touch of grain so it stays natural (not plasticky).
 // Calibrated against a user before/after pair.
-function applyDetail(canvas) {
+function applyDetail(canvas, options = {}) {
+  const scale = options.scale || 1;
   const ctx = canvas.getContext('2d');
   const { width, height } = canvas;
   const imageData = ctx.getImageData(0, 0, width, height);
@@ -1117,8 +1271,13 @@ function applyDetail(canvas) {
   ctx.putImageData(imageData, 0, 0); // write toned so the blur samples it
 
   // 2) Light luminance-only sharpen (no colour shift) + 3) a touch of grain.
-  const blur = blurredData(canvas, 1);
-  const sharp = 0.03;
+  // The blur radius scales with resolution so the sharpen targets the same
+  // detail band at full output size as on the calibrated 2048px preview. When
+  // the photo was rotated, the resample softens every edge by one bilinear
+  // pass — a modest boost compensates without tipping into the over-sharpened
+  // look.
+  const blur = blurredData(canvas, Math.max(1, Math.round(scale)));
+  const sharp = options.rotated ? 0.1 : 0.03;
   const grain = 1.2;
   for (let i = 0; i < data.length; i += 4) {
     const l = 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
@@ -1210,29 +1369,25 @@ async function processFile(file) {
   setLoading(true);
   downloadButton.disabled = true;
   try {
-    const { canvas, imageData } = await readImageFile(file);
+    const { canvas, imageData, fullCanvas } = await readImageFile(file);
     lastOriginalCanvas = canvas;
+    lastFullCanvas = fullCanvas;
     currentMetrics = computeMetrics(imageData);
     renderMetrics(currentMetrics);
-    updateAnalysisSummary(currentMetrics);
 
     renderToCanvas(originalCanvas, lastOriginalCanvas, {
       showGuides: toggleGrid.checked,
       metrics: currentMetrics,
       includeAnnotations: true
     });
-    setCanvasMeta(originalMeta, lastOriginalCanvas);
+    setCanvasMeta(originalMeta, lastFullCanvas || lastOriginalCanvas);
 
-    lastImprovedCanvas = buildImproved(lastOriginalCanvas, currentMetrics);
-    renderToCanvas(improvedCanvas, lastImprovedCanvas, {
-      showGuides: toggleGrid.checked,
-      metrics: currentMetrics,
-      includeAnnotations: false
-    });
-    setCanvasMeta(improvedMeta, lastImprovedCanvas);
-
-    await prepareDownload(lastImprovedCanvas);
-    document.body.classList.add('has-image');
+    await rebuildImproved();
+    if (lastOriginalCanvas) {
+      // Guard: a Reset clicked mid-rebuild clears the interface; don't
+      // re-apply the has-image layout to an empty page.
+      document.body.classList.add('has-image');
+    }
   } catch (error) {
     console.error(error);
     showError('error_processing', 'Unable to process this file. Please try another image.');
@@ -1315,7 +1470,7 @@ function initEventListeners() {
     if (!currentDownloadUrl) return;
     const a = document.createElement('a');
     a.href = currentDownloadUrl;
-    a.download = downloadButton.dataset.filename || 'fixed-photo.png';
+    a.download = downloadButton.dataset.filename || 'fixed-photo.jpg';
     a.click();
   });
   langToggleButtons.forEach(btn => {
